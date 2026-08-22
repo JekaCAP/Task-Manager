@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: task-manager
+  profiles:
+    active: dev
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    url: /openapi.yaml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:task-manager-sandbox-jwt-secret-key-min-256-bits-long-for-hs256-algorithm}
+    access-token-expiration-ms: 900000
+    refresh-token-expiration-ms: 604800000
+  upload:
+    max-file-size-bytes: 5242880
+    allowed-content-types: image/png,image/jpeg,application/pdf,text/plain
+
+server:
+  error:
+    include-message: never
+    include-binding-errors: never

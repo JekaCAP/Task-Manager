@@ -1,0 +1,1691 @@
+openapi: 3.0.3
+info:
+  title: Task Manager Sandbox API
+  version: 1.0.0
+  description: |
+    Учебное REST API для курса Java AQA.
+
+    **Единый источник спецификации:** `src/main/resources/static/openapi.yaml`
+
+    - Swagger UI: `/swagger-ui.html`
+    - Этот файл: `/openapi.yaml`
+    - Live docs (из кода): `/v3/api-docs`
+
+    ## Авторизация
+    1. `POST /api/v1/auth/login` → получить `accessToken`
+    2. Header: `Authorization: Bearer {accessToken}`
+
+    ## Demo users (profile dev)
+    | Email | Password | Роль |
+    |-------|----------|------|
+    | admin@demo.com | Demo123! | ADMIN |
+    | qa@demo.com | Demo123! | MEMBER |
+    | viewer@demo.com | Demo123! | VIEWER |
+
+    ## Формат ошибок
+    Все ошибки возвращают `ErrorResponse` с полями `code`, `message`, `details`, `timestamp`, `path`.
+  contact:
+    name: Java AQA Course
+    email: qa@demo.com
+
+servers:
+  - url: http://localhost:8080
+    description: Local dev (H2)
+
+tags:
+  - name: Auth
+    description: Регистрация, login, JWT refresh/logout
+  - name: Users
+    description: Пользователи и профиль
+  - name: Projects
+    description: Проекты и участники (RBAC)
+  - name: Tasks
+    description: Задачи, комментарии, вложения, history
+  - name: Comments
+    description: Операции над комментариями по ID
+  - name: Tags
+    description: Теги проекта
+  - name: Stats
+    description: Dashboard статистика
+  - name: System
+    description: Actuator
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ─── Auth (6) ───────────────────────────────────────────────
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Регистрация пользователя
+      description: Создаёт аккаунт и возвращает JWT access/refresh tokens.
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              default:
+                value:
+                  email: new.user@demo.com
+                  password: Demo123!
+                  firstName: New
+                  lastName: User
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                default:
+                  $ref: '#/components/examples/AuthResponseExample'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Вход в систему
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              qaUser:
+                value:
+                  email: qa@demo.com
+                  password: Demo123!
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                default:
+                  $ref: '#/components/examples/AuthResponseExample'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Обновление access token
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (revoke refresh token)
+      operationId: logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '204':
+          description: No Content
+
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Текущий пользователь
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Запрос сброса пароля
+      description: Sandbox — всегда 202 Accepted (anti-enumeration).
+      operationId: forgotPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '202':
+          description: Accepted
+
+  # ─── Users (6) ──────────────────────────────────────────────
+  /api/v1/users:
+    get:
+      tags: [Users]
+      summary: Список пользователей
+      description: Только ADMIN.
+      operationId: listUsers
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedUserResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/users/me/profile:
+    get:
+      tags: [Users]
+      summary: Расширенный профиль текущего пользователя
+      operationId: getMyProfile
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+
+  /api/v1/users/{userId}:
+    get:
+      tags: [Users]
+      summary: Пользователь по ID
+      operationId: getUserById
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Users]
+      summary: Обновление пользователя
+      description: Self или ADMIN.
+      operationId: updateUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Users]
+      summary: Soft delete пользователя
+      description: Только ADMIN.
+      operationId: deleteUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: No Content
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{userId}/tasks:
+    get:
+      tags: [Users]
+      summary: Задачи пользователя (assignee)
+      operationId: getUserTasks
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTaskResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Projects (8) ───────────────────────────────────────────
+  /api/v1/projects:
+    get:
+      tags: [Projects]
+      summary: Список проектов
+      operationId: listProjects
+      parameters:
+        - name: archived
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedProjectResponse'
+    post:
+      tags: [Projects]
+      summary: Создание проекта
+      description: Создатель становится OWNER.
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+            examples:
+              default:
+                value:
+                  name: Demo Project
+                  description: Sandbox for API testing
+                  key: DEMO
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/projects/{projectId}:
+    get:
+      tags: [Projects]
+      summary: Детали проекта
+      operationId: getProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectDetailResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Projects]
+      summary: Обновление проекта
+      description: OWNER/ADMIN проекта.
+      operationId: updateProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Projects]
+      summary: Удаление проекта
+      operationId: deleteProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '204':
+          description: No Content
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/projects/{projectId}/members:
+    get:
+      tags: [Projects]
+      summary: Участники проекта
+      operationId: listProjectMembers
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectMemberResponse'
+    post:
+      tags: [Projects]
+      summary: Добавить участника
+      operationId: addProjectMember
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddProjectMemberRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMemberResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/projects/{projectId}/members/{memberUserId}:
+    delete:
+      tags: [Projects]
+      summary: Удалить участника
+      description: Нельзя удалить OWNER.
+      operationId: removeProjectMember
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: memberUserId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: No Content
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Tasks (13) ─────────────────────────────────────────────
+  /api/v1/tasks:
+    get:
+      tags: [Tasks]
+      summary: Список задач
+      operationId: listTasks
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+        - name: assigneeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tag
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: dueBefore
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: dueAfter
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTaskResponse'
+    post:
+      tags: [Tasks]
+      summary: Создание задачи
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+            examples:
+              default:
+                value:
+                  projectId: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                  title: Fix login validation
+                  description: Add email format check
+                  priority: HIGH
+                  dueDate: "2026-09-01T00:00:00Z"
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+              examples:
+                default:
+                  $ref: '#/components/examples/TaskResponseExample'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/tasks/search:
+    get:
+      tags: [Tasks]
+      summary: Поиск задач
+      description: Query min 2 символа.
+      operationId: searchTasks
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+        - name: projectId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTaskResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/tasks/bulk-update:
+    post:
+      tags: [Tasks]
+      summary: Массовое обновление задач
+      description: До 50 taskIds за запрос.
+      operationId: bulkUpdateTasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkUpdateTasksRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkUpdateTasksResponse'
+
+  /api/v1/tasks/{taskId}:
+    get:
+      tags: [Tasks]
+      summary: Детали задачи
+      operationId: getTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Tasks]
+      summary: Обновление задачи
+      description: Optimistic lock через `version` → 409 Conflict.
+      operationId: updateTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [Tasks]
+      summary: Удаление задачи
+      description: Soft delete по умолчанию (`hard=false`).
+      operationId: deleteTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - name: hard
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '204':
+          description: No Content
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/tasks/{taskId}/status:
+    patch:
+      tags: [Tasks]
+      summary: Смена статуса задачи
+      description: |
+        Допустимые переходы:
+        - TODO → IN_PROGRESS, CANCELLED
+        - IN_PROGRESS → REVIEW, TODO, CANCELLED
+        - REVIEW → DONE, IN_PROGRESS, CANCELLED
+        - DONE → CANCELLED
+      operationId: updateTaskStatus
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskStatusRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/tasks/{taskId}/assignee:
+    patch:
+      tags: [Tasks]
+      summary: Назначение исполнителя
+      description: `assigneeId=null` снимает назначение.
+      operationId: updateTaskAssignee
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskAssigneeRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/tasks/{taskId}/comments:
+    get:
+      tags: [Tasks]
+      summary: Комментарии задачи
+      operationId: listTaskComments
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedCommentResponse'
+    post:
+      tags: [Tasks]
+      summary: Добавить комментарий
+      operationId: createTaskComment
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+
+  /api/v1/tasks/{taskId}/history:
+    get:
+      tags: [Tasks]
+      summary: История изменений задачи
+      operationId: getTaskHistory
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivityLogResponse'
+
+  /api/v1/tasks/{taskId}/attachments:
+    post:
+      tags: [Tasks]
+      summary: Загрузка вложения
+      operationId: uploadAttachment
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachmentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+
+  /api/v1/tasks/{taskId}/tags/{tagId}:
+    post:
+      tags: [Tags]
+      summary: Привязать тег к задаче
+      operationId: attachTagToTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - $ref: '#/components/parameters/TagId'
+      responses:
+        '204':
+          description: No Content
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # ─── Comments (3) ───────────────────────────────────────────
+  /api/v1/comments/{commentId}:
+    get:
+      tags: [Comments]
+      summary: Комментарий по ID
+      operationId: getComment
+      parameters:
+        - $ref: '#/components/parameters/CommentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Comments]
+      summary: Обновление комментария
+      description: Только автор или ADMIN.
+      operationId: updateComment
+      parameters:
+        - $ref: '#/components/parameters/CommentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [Comments]
+      summary: Удаление комментария
+      operationId: deleteComment
+      parameters:
+        - $ref: '#/components/parameters/CommentId'
+      responses:
+        '204':
+          description: No Content
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ─── Tags (1) ───────────────────────────────────────────────
+  /api/v1/tags:
+    get:
+      tags: [Tags]
+      summary: Список тегов
+      operationId: listTags
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagResponse'
+
+  # ─── Stats (1) ──────────────────────────────────────────────
+  /api/v1/stats/dashboard:
+    get:
+      tags: [Stats]
+      summary: Dashboard statistics
+      operationId: getDashboardStats
+      parameters:
+        - name: projectId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStatsResponse'
+              examples:
+                default:
+                  value:
+                    totalProjects: 1
+                    totalTasks: 5
+                    tasksByStatus:
+                      TODO: 2
+                      IN_PROGRESS: 1
+                      REVIEW: 1
+                      DONE: 1
+                      CANCELLED: 0
+                    tasksByPriority:
+                      LOW: 1
+                      MEDIUM: 2
+                      HIGH: 1
+                      CRITICAL: 1
+                    overdueTasks: 1
+
+  # ─── System (1) ─────────────────────────────────────────────
+  /actuator/health:
+    get:
+      tags: [System]
+      summary: Health check
+      operationId: health
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token из POST /api/v1/auth/login
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Sort:
+      name: sort
+      in: query
+      schema:
+        type: string
+        example: createdAt,desc
+    SearchQuery:
+      name: search
+      in: query
+      schema:
+        type: string
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CommentId:
+      name: commentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TagId:
+      name: tagId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                code: UNAUTHORIZED
+                message: JWT token is missing or invalid
+                details: []
+                timestamp: "2026-08-22T10:30:00Z"
+                path: /api/v1/tasks
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                code: FORBIDDEN
+                message: Access denied
+                details: []
+                timestamp: "2026-08-22T10:30:00Z"
+                path: /api/v1/projects/00000000-0000-0000-0000-000000000001
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                code: NOT_FOUND
+                message: Task not found
+                details: []
+                timestamp: "2026-08-22T10:30:00Z"
+                path: /api/v1/tasks/00000000-0000-0000-0000-000000000001
+    ValidationError:
+      description: Validation Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                code: VALIDATION_ERROR
+                message: Request validation failed
+                details:
+                  - field: title
+                    message: must not be blank
+                  - field: priority
+                    message: "must be one of: LOW, MEDIUM, HIGH, CRITICAL"
+                timestamp: "2026-08-22T10:30:00Z"
+                path: /api/v1/tasks
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                code: CONFLICT
+                message: Resource was modified by another user
+                details: []
+                timestamp: "2026-08-22T10:30:00Z"
+                path: /api/v1/tasks/3fa85f64-5717-4562-b3fc-2c963f66afa6
+    UnprocessableEntity:
+      description: Unprocessable Entity
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                code: UNPROCESSABLE_ENTITY
+                message: "Invalid status transition: DONE -> TODO"
+                details: []
+                timestamp: "2026-08-22T10:30:00Z"
+                path: /api/v1/tasks/3fa85f64-5717-4562-b3fc-2c963f66afa6/status
+    PayloadTooLarge:
+      description: Payload Too Large
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  examples:
+    AuthResponseExample:
+      value:
+        accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken: 8f3c2a1b-4d5e-6f70-8192-a3b4c5d6e7f8.9a0b1c2d-3e4f-5061-7283-94a5b6c7d8e9
+        user:
+          id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          email: qa@demo.com
+          firstName: QA
+          lastName: Engineer
+          globalRole: USER
+          avatarUrl: null
+    TaskResponseExample:
+      value:
+        id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        projectId: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+        title: Fix login validation
+        description: Add email format check on backend
+        status: IN_PROGRESS
+        priority: HIGH
+        assigneeId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        dueDate: "2026-09-01T00:00:00Z"
+        version: 3
+        createdAt: "2026-08-20T08:00:00Z"
+        updatedAt: "2026-08-22T09:15:00Z"
+
+  schemas:
+    # ── Enums ──
+    GlobalRole:
+      type: string
+      enum: [ADMIN, USER]
+    ProjectRole:
+      type: string
+      enum: [OWNER, ADMIN, MEMBER, VIEWER]
+    TaskStatus:
+      type: string
+      enum: [TODO, IN_PROGRESS, REVIEW, DONE, CANCELLED]
+    TaskPriority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, CRITICAL]
+    ActivityAction:
+      type: string
+      enum: [CREATED, UPDATED, STATUS_CHANGED, ASSIGNEE_CHANGED, COMMENT_ADDED, DELETED]
+    ErrorCode:
+      type: string
+      enum: [VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, UNPROCESSABLE_ENTITY, PAYLOAD_TOO_LARGE, INTERNAL_ERROR]
+
+    # ── Common ──
+    FieldErrorDetail:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+    ErrorResponse:
+      type: object
+      required: [code, message, details, timestamp, path]
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldErrorDetail'
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+    PageMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    # ── Auth ──
+    RegisterRequest:
+      type: object
+      required: [email, password, firstName, lastName]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserResponse'
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+
+    # ── Users ──
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        globalRole:
+          $ref: '#/components/schemas/GlobalRole'
+        avatarUrl:
+          type: string
+          nullable: true
+    UserProfileResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        assignedTasksCount:
+          type: integer
+          format: int64
+        ownedProjectsCount:
+          type: integer
+          format: int64
+        memberSince:
+          type: string
+          format: date-time
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        avatarUrl:
+          type: string
+          maxLength: 512
+    PagedUserResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    # ── Projects ──
+    CreateProjectRequest:
+      type: object
+      required: [name, key]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        key:
+          type: string
+          minLength: 2
+          maxLength: 10
+          pattern: '^[A-Z0-9_]+$'
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        archived:
+          type: boolean
+    ProjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        key:
+          type: string
+        archived:
+          type: boolean
+        ownerId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProjectMemberResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          $ref: '#/components/schemas/ProjectRole'
+        joinedAt:
+          type: string
+          format: date-time
+    ProjectDetailResponse:
+      type: object
+      properties:
+        project:
+          $ref: '#/components/schemas/ProjectResponse'
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectMemberResponse'
+        tasksCount:
+          type: integer
+          format: int64
+    AddProjectMemberRequest:
+      type: object
+      required: [userId, role]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/ProjectRole'
+    PagedProjectResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    # ── Tasks ──
+    CreateTaskRequest:
+      type: object
+      required: [projectId, title, priority]
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 4000
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        dueDate:
+          type: string
+          format: date-time
+        assigneeId:
+          type: string
+          format: uuid
+          nullable: true
+    UpdateTaskRequest:
+      type: object
+      required: [version]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        dueDate:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+    UpdateTaskStatusRequest:
+      type: object
+      required: [status, version]
+      properties:
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        version:
+          type: integer
+          format: int64
+    UpdateTaskAssigneeRequest:
+      type: object
+      required: [version]
+      properties:
+        assigneeId:
+          type: string
+          format: uuid
+          nullable: true
+        version:
+          type: integer
+          format: int64
+    BulkUpdateTasksRequest:
+      type: object
+      required: [taskIds]
+      properties:
+        taskIds:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            format: uuid
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        assigneeId:
+          type: string
+          format: uuid
+    BulkUpdateTasksResponse:
+      type: object
+      properties:
+        updated:
+          type: integer
+        failed:
+          type: array
+          items:
+            type: string
+            format: uuid
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        assigneeId:
+          type: string
+          format: uuid
+          nullable: true
+        dueDate:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TaskDetailResponse:
+      type: object
+      properties:
+        task:
+          $ref: '#/components/schemas/TaskResponse'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagResponse'
+        commentsCount:
+          type: integer
+          format: int64
+        attachmentsCount:
+          type: integer
+          format: int64
+    PagedTaskResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    # ── Comments ──
+    CreateCommentRequest:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          maxLength: 4000
+    UpdateCommentRequest:
+      type: object
+      required: [body, version]
+      properties:
+        body:
+          type: string
+        version:
+          type: integer
+          format: int64
+    CommentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        authorName:
+          type: string
+        body:
+          type: string
+        version:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PagedCommentResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentResponse'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    # ── Tags ──
+    TagResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        color:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # ── Attachments ──
+    AttachmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        originalName:
+          type: string
+        contentType:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        uploadedById:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
+    # ── Activity ──
+    ActivityLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        actorId:
+          type: string
+          format: uuid
+        actorName:
+          type: string
+        action:
+          $ref: '#/components/schemas/ActivityAction'
+        details:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # ── Stats ──
+    DashboardStatsResponse:
+      type: object
+      properties:
+        totalProjects:
+          type: integer
+          format: int64
+        totalTasks:
+          type: integer
+          format: int64
+        tasksByStatus:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        tasksByPriority:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        overdueTasks:
+          type: integer
+          format: int64
