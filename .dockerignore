@@ -1,0 +1,13 @@
+target
+.git
+.github
+.idea
+*.iml
+.env
+.env.*
+!.env.prod.example
+docker-compose.prod.yml
+frontend/node_modules
+frontend/dist
+postman
+uploads

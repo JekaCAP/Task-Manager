@@ -1,6 +1,6 @@
 # Task Manager Sandbox
 
-Учебный REST API для курса **Java AQA** (1–2 года опыта). Практика: Postman, Rest Assured, CI/CD, Allure.
+Учебный REST API для курса **Java AQA**. Практика: Postman, Rest Assured, CI/CD, Allure.
 
 ## Stack
 
@@ -34,6 +34,10 @@ cd frontend && npm install && npm run dev
 Подробнее: [`frontend/README.md`](frontend/README.md) — `data-testid` для Selenium.
 
 Demo: `qa@demo.com` / `Demo123!`
+
+## Deploy (VPS sandbox)
+
+Production deploy (HTTP, Docker, frontend + backend): **[DEPLOY.md](DEPLOY.md)**
 
 ## Tests
 

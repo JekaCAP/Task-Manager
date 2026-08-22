@@ -34,3 +34,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Env / secrets ###
+.env
+.env.prod
+!.env.prod.example

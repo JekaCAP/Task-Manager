@@ -5,7 +5,8 @@
 | Файл | Назначение |
 |------|------------|
 | `Task-Manager-Smoke.postman_collection.json` | Запросы и автотесты (Tests) |
-| `Task-Manager-Sandbox.postman_environment.json` | Переменные: URL, логин, токены, id задач |
+| `Task-Manager-Sandbox.postman_environment.json` | localhost |
+| `Task-Manager-Sandbox-VPS.postman_environment.json` | VPS: `http://51.195.82.237` |
 
 **Почему два файла:** коллекция описывает *что* вызывать и *как* проверять, environment — *куда* стучаться (localhost / VPS) и *чем* авторизоваться. Токены и id подставляются автоматически между шагами.
 
