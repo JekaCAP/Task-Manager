@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["id", "projectId", "title", "status", "priority", "version"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "projectId": { "type": "string", "format": "uuid" },
+    "title": { "type": "string" },
+    "description": { "type": ["string", "null"] },
+    "status": { "type": "string" },
+    "priority": { "type": "string" },
+    "version": { "type": "integer" }
+  }
+}

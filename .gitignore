@@ -39,3 +39,8 @@ build/
 .env
 .env.prod
 !.env.prod.example
+
+### AQA course ###
+src/test/resources/aqa-local.properties
+allure-results/
+allure-report/

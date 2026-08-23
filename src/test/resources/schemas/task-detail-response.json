@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["task"],
+  "properties": {
+    "task": {
+      "type": "object",
+      "required": ["id", "title", "status", "version"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "status": { "type": "string" },
+        "version": { "type": "integer" }
+      }
+    },
+    "commentsCount": { "type": "integer" },
+    "attachmentsCount": { "type": "integer" }
+  }
+}

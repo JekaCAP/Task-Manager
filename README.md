@@ -113,8 +113,30 @@
 | [`src/main/resources/static/openapi.yaml`](src/main/resources/static/openapi.yaml) | Студенты / RA | Контракт API для импорта и ассертов |
 | [`frontend/`](frontend/) | UI-модуль курса | React Kanban, `data-testid` для Selenium |
 | [`DEPLOY.md`](DEPLOY.md) | Преподаватель | Деплой и обновление VPS |
+| `src/test/java/.../aqa/` | **Студенты / prod** | Каркас RA; на `prod` — эталон в `reference/` |
 
-Автотестов в репозитории **намеренно мало** — их пишете **вы** на этапе Rest Assured.
+Автотестов приложения **мало** — smoke Spring. API-тесты RA пишут студенты в `aqa/hw/` (ветка `main`).
+
+---
+
+## Rest Assured (курс Java AQA)
+
+| | |
+|---|---|
+| Каркас | `src/test/java/itk/student/task/manager/aqa/` |
+| Настройки | `src/test/resources/aqa.properties` |
+| Студенты | `aqa/hw/` — домашка в своей ветке |
+| **Эталон (ветка `prod`)** | `aqa/reference/` — полное решение практики |
+
+```bash
+./mvnw test -Dtest=Reference*ApiTest
+```
+
+Нужен **JDK 21** (`JAVA_HOME`). На Windows: `set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.x.x`.
+
+Локальный override URL/логинов: скопируйте `src/test/resources/aqa-local.properties.example` → `aqa-local.properties` (файл в `.gitignore`).
+
+ТЗ — урок **09. Практика. Task Manager** и **02. Практика. Rest assured** в vault курса.
 
 ---
 
