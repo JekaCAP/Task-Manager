@@ -1,14 +1,14 @@
 # Task Manager — деплой на VPS (HTTP)
 
 Sandbox для курса Java AQA: **backend + frontend + PostgreSQL** в Docker.  
-Публичный доступ: `http://51.195.82.237` (порт 80).
+Публичный доступ: `http://51.195.82.237` (порт 90).
 
 Стек в `docker-compose.prod.yml`:
 
 | Сервис | Контейнер | Назначение |
 |--------|-----------|------------|
 | `postgres` | taskmanager-postgres | БД |
-| `app` | taskmanager-app | Spring Boot, только `127.0.0.1:8083` |
+| `app` | taskmanager-app | Spring Boot, только `127.0.0.1:8084` (или `APP_HOST_PORT`) |
 | `web` | taskmanager-web | nginx: React static + proxy `/api` |
 
 ---
@@ -85,7 +85,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod ps
 **Backend напрямую (только с VPS):**
 
 ```bash
-curl -s http://127.0.0.1:8083/actuator/health
+curl -s http://127.0.0.1:8084/actuator/health
 # {"status":"UP"}
 ```
 
@@ -172,7 +172,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.prod ps
-curl -s http://127.0.0.1:8083/actuator/health
+curl -s http://127.0.0.1:8084/actuator/health
 curl -s http://localhost/actuator/health
 docker logs taskmanager-app --tail 100
 ```
@@ -211,7 +211,8 @@ sudo nginx -t && sudo systemctl reload nginx
 | Симптом | Решение |
 |---------|---------|
 | `app` unhealthy | `docker logs taskmanager-app --tail 200` — часто Liquibase/Postgres |
-| 502 на `/api` | `app` не healthy; проверь `curl http://127.0.0.1:8083/actuator/health` |
+| 502 на `/api` | `app` не healthy; проверь `curl http://127.0.0.1:8084/actuator/health` |
+| `Bind for 8083 failed` | Порт занят (часто study-hub); в `.env.prod` поставь `APP_HOST_PORT=8084` |
 | CORS в браузере | `CORS_ALLOWED_ORIGINS` в `.env.prod` = origin фронта (`http://51.195.82.237`) |
 | Maven timeout на VPS | используется `.mvn/settings.xml` (Aliyun mirror) |
 | Порт 80 занят | смени `WEB_HOST_PORT=8080` в `.env.prod` → `http://IP:8080` |

@@ -42,6 +42,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/forgot-password",
                                 "/actuator/health",
                                 "/v3/api-docs/**",
+                                "/openapi.yaml",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/h2-console/**"

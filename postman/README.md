@@ -1,12 +1,16 @@
 # Postman — Task Manager Sandbox
 
+**Справочник всех эндпоинтов:** [API-ENDPOINTS.md](API-ENDPOINTS.md) — URL, query, body, ответы для ручного тестирования.
+
 Два файла для импорта в Postman (это **не две коллекции**, а **коллекция + environment**).
 
 | Файл | Назначение |
 |------|------------|
-| `Task-Manager-Smoke.postman_collection.json` | Запросы и автотесты (Tests) |
+| `Task-Manager-Smoke.postman_collection.json` | Smoke + базовые негативы (модули 1–2) |
+| `Task-Manager-Course-Module3.postman_collection.json` | **Модуль 3 курса:** Pre-request, CRUD E2E, OpenAPI schema, домашка |
+| `openapi.yaml` | OpenAPI spec — Import → File в Postman (урок 3.3) |
 | `Task-Manager-Sandbox.postman_environment.json` | localhost |
-| `Task-Manager-Sandbox-VPS.postman_environment.json` | VPS: `http://51.195.82.237` |
+| `Task-Manager-Sandbox-VPS.postman_environment.json` | VPS: `http://51.195.82.237:8090` |
 
 **Почему два файла:** коллекция описывает *что* вызывать и *как* проверять, environment — *куда* стучаться (localhost / VPS) и *чем* авторизоваться. Токены и id подставляются автоматически между шагами.
 
@@ -28,9 +32,30 @@
 | Папка | Запросов | Когда запускать |
 |-------|----------|-----------------|
 | **01 Smoke** | 11 | Основной сценарий: login → JWT → проект DEMO → CRUD задачи → logout |
-| **02 Negative** | 5 | Негативы: 401, 400 validation. Есть свои Setup-запросы перед последним тестом |
+| **02 Negative** | 5 | Негативы: 401 + validation. Запускай **все 5** (есть Setup перед create task) |
 
 Smoke нужно гонять **сверху вниз** — каждый шаг сохраняет переменные для следующего (`accessToken`, `demoProjectId`, `taskId` …).
+
+---
+
+## Коллекция модуля 3 (`Task-Manager-Course-Module3`)
+
+Эталон под уроки **3.1–3.3** и домашнее задание. На коллекции включён **Pre-request auto-login** (`await pm.sendRequest`).
+
+| Папка | Запросов | Содержание |
+|-------|----------|------------|
+| **03 Pre-request** | 3 | List DEMO → Get Me → Create Task (UUID, TaskResponse + jsonSchema) |
+| **04 CRUD E2E** | 6 | create → get → PATCH status → delete → 404 (+ TaskDetailResponse schema) |
+| **05 Homework Negatives** | 8 | 401, empty title, search q&lt;2, invalid status TODO→DONE |
+
+**Запуск на VPS:**
+
+1. Import: `Task-Manager-Course-Module3.postman_collection.json` + `Task-Manager-Sandbox-VPS.postman_environment.json`
+2. Environment **Task Manager — Sandbox (VPS)** активен
+3. ПКМ на коллекции → **Run collection** (или по папкам)
+4. **Keep variable values** — ON
+
+Ожидание: все assertions зелёные (~50+ проверок на полный прогон).
 
 ---
 

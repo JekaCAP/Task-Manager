@@ -635,6 +635,43 @@
           "name": "Create Task — empty title",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const ensureAuth = async () => {",
+                  "    if (pm.environment.get('accessToken') && pm.environment.get('demoProjectId')) {",
+                  "        return;",
+                  "    }",
+                  "    const baseUrl = pm.environment.get('baseUrl');",
+                  "    const loginRes = await pm.sendRequest({",
+                  "        url: `${baseUrl}/api/v1/auth/login`,",
+                  "        method: 'POST',",
+                  "        header: { 'Content-Type': 'application/json' },",
+                  "        body: {",
+                  "            mode: 'raw',",
+                  "            raw: JSON.stringify({",
+                  "                email: pm.environment.get('userEmail'),",
+                  "                password: pm.environment.get('userPassword')",
+                  "            })",
+                  "        }",
+                  "    });",
+                  "    const login = loginRes.json();",
+                  "    pm.environment.set('accessToken', login.accessToken);",
+                  "    const projectsRes = await pm.sendRequest({",
+                  "        url: `${baseUrl}/api/v1/projects?size=20`,",
+                  "        method: 'GET',",
+                  "        header: { Authorization: `Bearer ${login.accessToken}` }",
+                  "    });",
+                  "    const demo = projectsRes.json().content.find(p => p.key === 'DEMO');",
+                  "    pm.environment.set('demoProjectId', demo.id);",
+                  "};",
+                  "",
+                  "await ensureAuth();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
