@@ -109,3 +109,21 @@ exception/    GlobalExceptionHandler
 ```
 
 Тесты в проекте намеренно минимальны — домашние задания пишут студенты на Rest Assured.
+
+## Rest Assured (курс Java AQA)
+
+Каркас для домашки: `src/test/java/itk/student/task/manager/aqa/` (`config`, `support`).
+
+| | |
+|---|---|
+| Настройки стенда | `src/test/resources/aqa.properties` |
+| Локальный override | `aqa-local.properties` (см. `.example`) |
+| Ваш код | `aqa.hw` — пакет создаёте сами |
+
+**Sandbox:** `http://51.195.82.237:8090` · **Demo:** `qa@demo.com` / `Demo123!`
+
+```bash
+./mvnw test -Dtest=IvanovTaskApiTest
+```
+
+ТЗ — урок [[09. Практика. Task Manager]]; флоу — Task-manager-service в vault.

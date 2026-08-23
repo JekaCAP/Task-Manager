@@ -31,6 +31,7 @@
 		<maven.compiler.release>21</maven.compiler.release>
 		<springdoc.version>2.8.6</springdoc.version>
 		<jjwt.version>0.12.6</jjwt.version>
+		<rest-assured.version>5.5.1</rest-assured.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -153,6 +154,19 @@
 			<artifactId>testcontainers-postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Rest Assured: объявлять до/рядом с JUnit, чтобы Hamcrest не разъехался -->
+		<dependency>
+			<groupId>io.rest-assured</groupId>
+			<artifactId>rest-assured</artifactId>
+			<version>${rest-assured.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.rest-assured</groupId>
+			<artifactId>json-schema-validator</artifactId>
+			<version>${rest-assured.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -181,6 +195,16 @@
 							<version>${lombok.version}</version>
 						</path>
 					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>**/aqa/hw/**/*Test.java</exclude>
+						<exclude>**/aqa/hw/**/*Tests.java</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
 		</plugins>
