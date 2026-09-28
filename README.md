@@ -1,12 +1,13 @@
 # Task Manager Sandbox
 
-Учебный REST API для курса **Java AQA**. Практика: Postman, Rest Assured, CI/CD, Allure.
+Учебный REST API + UI для курса **Java AQA**. Практика: Postman, Rest Assured, Selenium, CI/CD.
 
 ## Stack
 
 - Java 21, Spring Boot 4.1, Spring MVC
 - Spring Data JPA, Liquibase, Spring Security (JWT)
-- H2 (dev) / PostgreSQL (prod profile)
+- H2 in-memory (demo-данные при каждом старте)
+- React UI (опционально в JAR)
 - Swagger UI: [springdoc](https://springdoc.org/)
 
 ## API Specification (единый файл)
@@ -16,32 +17,10 @@
 | URL | Назначение |
 |-----|------------|
 | http://localhost:8080/openapi.yaml | Скачать / импорт в Postman |
-| http://localhost:8080/swagger-ui.html | Swagger UI (читает openapi.yaml) |
+| http://localhost:8080/swagger-ui.html | Swagger UI |
 | http://localhost:8080/v3/api-docs | Live JSON из springdoc |
 
-## Frontend
-
-React UI в папке [`frontend/`](frontend/).
-
-```bash
-cd frontend && npm install && npm run dev
-```
-
-→ http://127.0.0.1:5173 (login + Kanban board)
-
-**Важно:** используй `127.0.0.1`, не `localhost` — Yandex Browser часто не открывает localhost (ошибка connectionfailure).
-
-Подробнее: [`frontend/README.md`](frontend/README.md) — `data-testid` для Selenium.
-
-Demo: `qa@demo.com` / `Demo123!`
-
-## Tests
-
-Smoke test `TaskManagerApplicationTests` uses **H2 in-memory** (profile `test`) — Docker не нужен.
-
-Опционально Postgres через Testcontainers: запусти `TestTaskManagerApplication` при работающем Docker.
-
-## Quick start
+## Quick start (локально)
 
 ```bash
 ./mvnw spring-boot:run
@@ -49,7 +28,28 @@ Smoke test `TaskManagerApplicationTests` uses **H2 in-memory** (profile `test`) 
 
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - Health: http://localhost:8080/actuator/health
-- H2 Console (dev): http://localhost:8080/h2-console
+
+### Frontend (отдельно, для разработки UI)
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+→ http://127.0.0.1:5173 (login + Kanban board)
+
+**Важно:** используй `127.0.0.1`, не `localhost` — Yandex Browser часто не открывает localhost.
+
+Подробнее: [`frontend/README.md`](frontend/README.md) — `data-testid` для Selenium.
+
+### Frontend в JAR (VPS, один процесс)
+
+```bash
+cd frontend && npm install && npm run build:embed
+cd .. && ./mvnw package -DskipTests
+java -Xms128m -Xmx256m -jar target/task-manager-0.0.1-SNAPSHOT.jar --server.port=8090
+```
+
+→ UI + API на одном порту (например http://VPS:8090/login).
 
 ## Demo users (profile `dev`)
 
@@ -86,13 +86,9 @@ Smoke test `TaskManagerApplicationTests` uses **H2 in-memory** (profile `test`) 
 }
 ```
 
-## PostgreSQL
+## Tests
 
-```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=postgres
-```
-
-Env: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`.
+Smoke test `TaskManagerApplicationTests` uses **H2 in-memory** (profile `test`) — Docker не нужен.
 
 ## Project structure
 
@@ -120,10 +116,8 @@ exception/    GlobalExceptionHandler
 | Локальный override | `aqa-local.properties` (см. `.example`) |
 | Ваш код | `aqa.hw` — пакет создаёте сами |
 
-**Sandbox:** `http://51.195.82.237:8090` · **Demo:** `qa@demo.com` / `Demo123!`
+**Sandbox:** `https://demo.itklabs.online` · **Demo:** `qa@demo.com` / `Demo123!`
 
 ```bash
 ./mvnw test -Dtest=IvanovTaskApiTest
 ```
-
-ТЗ — урок [[09. Практика. Task Manager]]; флоу — Task-manager-service в vault.
