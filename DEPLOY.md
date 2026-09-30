@@ -30,9 +30,9 @@ Runbook переезда со старой схемы (systemd + jar + nginx н�
 # Docker + compose plugin
 curl -fsSL https://get.docker.com | sh
 
-# Код (если репозиторий приватный — deploy key или https-токен)
+# Код (деплоим из ветки prod; репозиторий публичный)
 mkdir -p /opt && cd /opt
-git clone https://github.com/JekaCAP/Task-Manager.git task-manager
+git clone -b prod https://github.com/JekaCAP/Task-Manager.git task-manager
 cd task-manager
 
 # Опционально: свой JWT-секрет

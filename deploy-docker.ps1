@@ -6,17 +6,18 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$VpsIp,
-    [string]$ProjectDir = "/opt/task-manager"
+    [string]$ProjectDir = "/opt/task-manager",
+    [string]$Branch = "prod"
 )
 
 $ErrorActionPreference = "Stop"
 
-# 1. Локально: убедиться, что свежий main запушен
-git checkout main
+# 1. Локально: убедиться, что свежая ветка запушена
+git checkout $Branch
 git pull
 
 # 2. На VPS: забрать код и пересобрать ТОЛЬКО app (nginx и certbot не трогаем)
-ssh "root@$VpsIp" "cd $ProjectDir && git pull && docker compose build app && docker compose up -d app"
+ssh "root@$VpsIp" "cd $ProjectDir && git checkout $Branch && git pull && docker compose build app && docker compose up -d app"
 
 # 3. Проверка (Spring поднимается ~15-20 сек)
 Write-Host "Ждём поднятия Spring..." -ForegroundColor Yellow
