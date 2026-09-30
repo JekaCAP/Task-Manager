@@ -1,5 +1,8 @@
 package itk.student.task.manager.aqa.config;
 
+/**
+ * Константы путей API. Базовый URL — в {@link ApiTestConfig#baseUrl()}.
+ */
 public final class ApiPaths {
 
     public static final String AUTH_LOGIN = "/api/v1/auth/login";

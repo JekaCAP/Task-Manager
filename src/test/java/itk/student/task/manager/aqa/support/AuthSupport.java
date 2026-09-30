@@ -10,6 +10,11 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 
+/**
+ * Login и сборка {@link RequestSpecification} с Bearer-токеном.
+ * Не логирует пароль — только JSON body без log().all() на login.
+ * Токен основного пользователя кэшируется между вызовами.
+ */
 public final class AuthSupport {
 
     private AuthSupport() {

@@ -3,6 +3,9 @@ target/
 uploads/
 frontend/node_modules/
 frontend/dist/
+src/main/resources/static/index.html
+src/main/resources/static/assets/
+src/main/resources/static/favicon.svg
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -35,12 +38,11 @@ build/
 ### VS Code ###
 .vscode/
 
-### Env / secrets ###
+### Env / secrets — не коммитить ###
 .env
-.env.prod
-!.env.prod.example
+.env.*
 
-### AQA course ###
+### AQA course — локальные overrides (не коммитить) ###
 src/test/resources/aqa-local.properties
 allure-results/
 allure-report/

@@ -1,96 +1,91 @@
-# Task Manager — учебный sandbox для курса Java AQA
+# Task Manager Sandbox
 
-Это живое приложение, с которым вы будете работать: сначала в Postman, потом на Rest Assured.
+Учебный REST API + UI для курса **Java AQA**. Практика: Postman, Rest Assured, Selenium, CI/CD.
 
----
+## Stack
 
-## Что это за приложение
+- Java 21, Spring Boot 4.1, Spring MVC
+- Spring Data JPA, Liquibase, Spring Security (JWT)
+- H2 in-memory (demo-данные при каждом старте)
+- React UI (опционально в JAR)
+- Swagger UI: [springdoc](https://springdoc.org/)
 
-**Task Manager** — упрощённый таск-трекер (аналог Jira/Trello):
+## API Specification (единый файл)
 
-- пользователи логинятся по JWT;
-- работают в **проектах** (у каждого свой ключ, например `DEMO`);
-- создают и меняют **задачи** (статусы, приоритеты, assignee, комментарии);
-- действуют **роли** — не всё доступно всем (это важно для негативных сценариев).
+**Canonical OpenAPI:** [`src/main/resources/static/openapi.yaml`](src/main/resources/static/openapi.yaml)
 
-На VPS развёрнуты **backend + frontend + PostgreSQL**. В браузере можно посмотреть UI; в курсе основной фокус — **тестирование API**.
+| URL | Назначение |
+|-----|------------|
+| http://localhost:8080/openapi.yaml | Скачать / импорт в Postman |
+| http://localhost:8080/swagger-ui.html | Swagger UI |
+| http://localhost:8080/v3/api-docs | Live JSON из springdoc |
 
-Возможно работать UI будет работать только с VPN.
+## Quick start (локально)
 
----
+```bash
+./mvnw spring-boot:run
+```
 
-## Дорожная карта: что вас ждёт
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- Health: http://localhost:8080/actuator/health
 
-| Этап | Модуль | Что делаете |
-|------|--------|-------------|
-| 1 | **Postman** | Коллекции, переменные, окружения, первые автотесты в Tests. Ручная и полуавтоматическая проверка API на **VPS**. |
-| 2 | **Практика (Postman)** | Свои запросы, негативы, цепочки login → CRUD, Collection Runner. Работа с тем же API и теми же пользователями. |
-| 3 | **Rest Assured** | Те же эндпоинты — уже из Java: specs, auth, JSON assertions, параметризация. |
-| 4 | **Практика (Rest Assured)** | Домашние задания и мини-набор автотестов против sandbox (и при желании — локально). |
-| 5 | **Дальше по курсу** | Allure, CI/CD, расширение покрытия — **всё на этом же проекте**, без смены «тренировочного» API на другой. |
+### Frontend (отдельно, для разработки UI)
 
-Один продукт — несколько уровней зрелости тестирования. Вы не учитесь «на абстрактном jsonplaceholder», а на системе, которую можно реально сломать, починить и покрыть тестами.
+```bash
+cd frontend && npm install && npm run dev
+```
 
----
+→ http://127.0.0.1:5173 (login + Kanban board)
 
-## Sandbox — подключение для студентов
+**Важно:** используй `127.0.0.1`, не `localhost` — Yandex Browser часто не открывает localhost.
 
-### Публичный стенд (VPS)
+Подробнее: [`frontend/README.md`](frontend/README.md) — `data-testid` для Selenium.
 
-| | |
-|---|---|
-| **Base URL** | `http://51.195.82.237:8090` |
-| **Swagger UI** | http://51.195.82.237:8090/swagger-ui.html |
-| **Health** | http://51.195.82.237:8090/actuator/health |
-| **UI (Kanban)** | http://51.195.82.237:8090/ |
+### Frontend в JAR (VPS, один процесс)
 
-> Указывайте порт **`:8090`**. Без порта или с другим портом на этом сервере откроется другое приложение.
+```bash
+cd frontend && npm install && npm run build:embed
+cd .. && ./mvnw package -DskipTests
+java -Xms128m -Xmx256m -jar target/task-manager-0.0.1-SNAPSHOT.jar --server.port=8090
+```
 
-**Demo-пользователь для большинства заданий:**
+→ UI + API на одном порту (например http://VPS:8090/login).
 
-| Email | Password | Роль в sandbox |
-|-------|----------|----------------|
-| `qa@demo.com` | `Demo123!` | Обычный участник, создаёт задачи в проекте **DEMO** |
+## Deploy на VPS (Docker)
 
-Дополнительные пользователи (негативы, RBAC): `admin@demo.com`, `viewer@demo.com` — пароль тот же `Demo123!`.
+Multi-stage сборка (npm → maven → JRE) — локально ни JDK, ни Node не нужно:
 
-### Локально (опционально)
+```bash
+docker compose build && docker compose up -d
+```
 
-Если поднимаете проект у себя: `http://localhost:8080` — те же пути `/api/v1/...`, те же demo-данные в профиле `dev`.  
-Подробности — в конце README для тех, кто хочет копать глубже.
+Схема: nginx-контейнер (80/443, Let's Encrypt через certbot-контейнер) → app-контейнер (:8090).
+Runbook миграции и ежедневный деплой: [`DEPLOY.md`](DEPLOY.md), скрипт: `deploy-docker.ps1`.
 
----
+## Demo users (profile `dev`)
 
-## С чего начать в Postman
+| Email | Password | Role |
+|-------|----------|------|
+| admin@demo.com | Demo123! | ADMIN |
+| lead@demo.com | Demo123! | PROJECT ADMIN |
+| qa@demo.com | Demo123! | MEMBER |
+| viewer@demo.com | Demo123! | VIEWER |
 
-1. Установите [Postman](https://www.postman.com/downloads/).
-2. Импортируйте из папки [`postman/`](postman/):
-   - `Task-Manager-Smoke.postman_collection.json` — запросы и примеры Tests;
-   - `Task-Manager-Sandbox-VPS.postman_environment.json` — URL и учётные данные VPS.
-3. Выберите environment **Task Manager — Sandbox (VPS)** в правом верхнем углу.
-4. Отправьте **Login** → **GET /auth/me** → **List Projects** — убедитесь, что видите проект `DEMO`.
+## API overview
 
-**Справочник всех эндпоинтов** (URL, body, ответы, доменная модель):  
-[`postman/API-ENDPOINTS.md`](postman/API-ENDPOINTS.md)
+| Group | Base path |
+|-------|-----------|
+| Auth | `/api/v1/auth` |
+| Users | `/api/v1/users` |
+| Projects | `/api/v1/projects` |
+| Tasks | `/api/v1/tasks` |
+| Comments | `/api/v1/comments` |
+| Tags | `/api/v1/tags` |
+| Stats | `/api/v1/stats` |
 
-**Подробнее про коллекцию и Runner:** [`postman/README.md`](postman/README.md)
+Авторизация: `Authorization: Bearer <accessToken>` после `POST /api/v1/auth/login`.
 
----
-
-## API в двух словах
-
-- Префикс: **`/api/v1/`**
-- Авторизация: `Authorization: Bearer <accessToken>` после `POST /api/v1/auth/login`
-- OpenAPI: `/openapi.yaml` · live docs: `/swagger-ui.html`
-
-| Группа | Путь | Зачем в курсе |
-|--------|------|----------------|
-| Auth | `/api/v1/auth` | Login, refresh, me — основа цепочек |
-| Projects | `/api/v1/projects` | Проект DEMO, members, RBAC |
-| Tasks | `/api/v1/tasks` | CRUD, статусы, optimistic lock (`version`) |
-| Comments, Tags, Stats | `/api/v1/...` | Расширенные сценарии на практике |
-
-Формат ошибок единый — удобно проверять в Postman и Rest Assured:
+## Error format
 
 ```json
 {
@@ -102,98 +97,38 @@
 }
 ```
 
----
+## Tests
 
-## Что лежит в репозитории
+Smoke test `TaskManagerApplicationTests` uses **H2 in-memory** (profile `test`) — Docker не нужен.
 
-| Путь | Для кого | Назначение |
-|------|----------|------------|
-| [`postman/`](postman/) | **Студенты** | Коллекция, environments, справочник API |
-| [`postman/API-ENDPOINTS.md`](postman/API-ENDPOINTS.md) | **Студенты** | Полный список эндпоинтов для ручного тестирования |
-| [`src/main/resources/static/openapi.yaml`](src/main/resources/static/openapi.yaml) | Студенты / RA | Контракт API для импорта и ассертов |
-| [`frontend/`](frontend/) | UI-модуль курса | React Kanban, `data-testid` для Selenium |
-| [`DEPLOY.md`](DEPLOY.md) | Преподаватель | Деплой и обновление VPS |
-| `src/test/java/.../aqa/` | **Студенты / prod** | Каркас RA; на `prod` — эталон в `reference/` |
+## Project structure
 
-Автотестов приложения **мало** — smoke Spring. API-тесты RA пишут студенты в `aqa/hw/` (ветка `main`).
+```
+controller/   REST endpoints + Swagger
+service/      business logic
+repository/   Spring Data JPA
+entity/       JPA entities
+dto/          request/response records
+mapper/       manual mappers (no MapStruct)
+config/       Security, OpenAPI, seed data
+security/     JWT filter, UserPrincipal
+exception/    GlobalExceptionHandler
+```
 
----
+Тесты в проекте намеренно минимальны — домашние задания пишут студенты на Rest Assured.
 
 ## Rest Assured (курс Java AQA)
 
+Каркас для домашки: `src/test/java/itk/student/task/manager/aqa/` (`config`, `support`).
+
 | | |
 |---|---|
-| Каркас | `src/test/java/itk/student/task/manager/aqa/` |
-| Настройки | `src/test/resources/aqa.properties` |
-| Студенты | `aqa/hw/` — домашка в своей ветке |
-| **Эталон (ветка `prod`)** | `aqa/reference/` — полное решение практики |
+| Настройки стенда | `src/test/resources/aqa.properties` |
+| Локальный override | `aqa-local.properties` (см. `.example`) |
+| Ваш код | `aqa.hw` — пакет создаёте сами |
+
+**Sandbox:** `https://demo.itklabs.online` · **Demo:** `qa@demo.com` / `Demo123!`
 
 ```bash
-./mvnw test -Dtest=Reference*ApiTest
+./mvnw test -Dtest=IvanovTaskApiTest
 ```
-
-Нужен **JDK 21** (`JAVA_HOME`). На Windows: `set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.x.x`.
-
-Локальный override URL/логинов: скопируйте `src/test/resources/aqa-local.properties.example` → `aqa-local.properties` (файл в `.gitignore`).
-
-ТЗ — урок **09. Практика. Task Manager** и **02. Практика. Rest assured** в vault курса.
-
----
-
-## Чего ждать от вас на практике
-
-**После модуля Postman:**
-
-- уметь собрать коллекцию с переменными (`baseUrl`, `accessToken`, `projectId`, `taskId`);
-- прогнать smoke-сценарий и негативы (401, 400, validation);
-- читать Swagger и сверять фактический ответ с контрактом.
-
-**После модуля Rest Assured:**
-
-- поднять Java-проект с RA против того же `baseUrl`;
-- вынести login в `@BeforeAll` / filter;
-- покрыть happy path + несколько негативов;
-- (далее) отчёты Allure, прогон в CI.
-
-Все задания — про **этот** Task Manager, чтобы к концу курса у вас был связный набор артеfactов, а не разрозненные упражнения.
-
----
-
-## Для самостоятельного запуска (не обязательно на старте)
-
-```bash
-./mvnw spring-boot:run
-```
-
-- Swagger: http://localhost:8080/swagger-ui.html  
-- Health: http://localhost:8080/actuator/health  
-- Demo users: `qa@demo.com` / `Demo123!` (и другие — см. seed в `dev` profile)
-
-Frontend локально:
-
-```bash
-cd frontend && npm install && npm run dev
-```
-
-→ http://127.0.0.1:5173
-
-Stack: Java 21, Spring Boot 4.1, JWT, H2 (dev) / PostgreSQL (prod), React.
-
-Деплой sandbox на VPS: [`DEPLOY.md`](DEPLOY.md).
-
----
-
-## Вопросы и проблемы
-
-| Симптом | Что проверить |
-|---------|----------------|
-| 404 / timeout | `baseUrl` и порт **8090** на VPS |
-| 401 после login | Сначала login, в Token — `{{accessToken}}`, environment активен |
-| Пустой `projectId` | Выполните List Projects, возьмите `id` проекта **DEMO** |
-| Login 200, но Tests падают | Вкладка Tests на login — скрипт сохранения `accessToken` |
-
-Если sandbox недоступен — сообщите преподавателю; локальный запуск — запасной вариант.
-
----
-
-**Итог:** этот репозиторий — ваш общий полигон на весь курс Java AQA. Сначала Postman и руки, потом Rest Assured и код, потом инфраструктура вокруг тех же тестов. Добро пожаловать в sandbox.

@@ -6,6 +6,10 @@ import java.io.UncheckedIOException;
 import java.util.Objects;
 import java.util.Properties;
 
+/**
+ * Читает {@code aqa.properties} + опциональный {@code aqa-local.properties}.
+ * Env {@code TASK_MANAGER_BASE_URL} и system property {@code taskManager.baseUrl} имеют приоритет.
+ */
 public final class ApiTestConfig {
 
     private static final Properties PROPS = load();

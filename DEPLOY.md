@@ -1,230 +1,173 @@
-# Task Manager — деплой на VPS (HTTP)
+# Деплой task-manager в Docker на новой VPS
 
-Sandbox для курса Java AQA: **backend + frontend + PostgreSQL** в Docker.  
-Публичный доступ: `http://51.195.82.237` (порт 90).
+Runbook переезда со старой схемы (systemd + jar + nginx на хосте) на Docker.
 
-Стек в `docker-compose.prod.yml`:
+## Архитектура
 
-| Сервис | Контейнер | Назначение |
-|--------|-----------|------------|
-| `postgres` | taskmanager-postgres | БД |
-| `app` | taskmanager-app | Spring Boot, только `127.0.0.1:8084` (или `APP_HOST_PORT`) |
-| `web` | taskmanager-web | nginx: React static + proxy `/api` |
-
----
-
-## A. Первый деплой на VPS (один раз)
-
-### 1. Подготовка VPS
-
-```bash
-ssh ubuntu@51.195.82.237
+```
+браузер → nginx-контейнер (:80/:443, Let's Encrypt)
+            ├── demo.itklabs.online        → app-контейнер (:8090, Spring Boot + UI в jar)
+            └── bot/resume/youtrack.itklabs.ru → https://51.195.82.237 (прокси, как на старой VPS)
+          certbot-контейнер (webroot-продление сертификатов раз в 12 часов)
 ```
 
-Установи Docker (если ещё нет):
+Состав репозитория для деплоя:
+
+| Файл | Назначение |
+|------|-----------|
+| `Dockerfile` | multi-stage: npm `build:embed` → maven package → JRE 21. Сборка самодостаточная, локально ничего собирать не нужно |
+| `docker-compose.yml` | app + nginx + certbot |
+| `nginx/conf.d/*.conf` | конфиги nginx (заменяют `/etc/nginx/conf.d` в контейнере) |
+| `deploy-docker.ps1` | ежедневный деплой с рабочей машины |
+| `.env.example` | шаблон секретов (опционально) |
+
+Приложение stateless: H2 in-memory, demo-данные сеются при старте, вложения в БД —
+**ничего переносить (БД/файлы) не нужно**, volume для app отсутствует намеренно.
+
+## 1. Подготовка новой VPS
 
 ```bash
-sudo apt update
-sudo apt install -y git docker.io docker-compose-v2
-sudo usermod -aG docker ubuntu
-# перелогинься или: newgrp docker
-```
+# Docker + compose plugin
+curl -fsSL https://get.docker.com | sh
 
-Firewall:
-
-```bash
-sudo ufw allow OpenSSH
-sudo ufw allow 80/tcp
-sudo ufw enable
-sudo ufw status
-```
-
-### 2. Клонирование репозитория
-
-```bash
-cd ~
-git clone <URL_ТВОЕГО_REPO> task-manager
+# Код (если репозиторий приватный — deploy key или https-токен)
+mkdir -p /opt && cd /opt
+git clone https://github.com/JekaCAP/Task-Manager.git task-manager
 cd task-manager
-git checkout prod
+
+# Опционально: свой JWT-секрет
+cp .env.example .env   # и раскомментируй JWT_SECRET в .env и в docker-compose.yml
 ```
 
-### 3. Секреты
+## 2. Сертификаты — перенос со старой VPS
+
+Контейнер nginx не стартует без сертификатов, поэтому переносим их **до** первого
+`docker compose up`. Переносим и renewal переключаем на webroot (authenticator=nginx
+внутри контейнера работать не будет).
 
 ```bash
-cp .env.prod.example .env.prod
-nano .env.prod
+# --- на СТАРОЙ VPS ---
+tar czf /root/letsencrypt.tar.gz -C /etc letsencrypt
+scp /root/letsencrypt.tar.gz root@NEW_IP:/tmp/
+
+# --- на НОВОЙ VPS ---
+cd /opt/task-manager
+mkdir -p certbot/conf certbot/www
+tar xzf /tmp/letsencrypt.tar.gz -C certbot/conf --strip-components=1
+ls certbot/conf/live/   # должно быть: demo.itklabs.online  bot.itklabs.ru  README
 ```
 
-Обязательно задай:
+Переключить renewal на webroot в обоих файлах
+`certbot/conf/renewal/demo.itklabs.online.conf` и `certbot/conf/renewal/bot.itklabs.ru.conf` —
+секцию с аутентификатором привести к виду:
 
-| Переменная | Пример |
-|------------|--------|
-| `POSTGRES_PASSWORD` | длинный случайный пароль |
-| `JWT_SECRET` | минимум 32 символа |
-| `CORS_ALLOWED_ORIGINS` | `http://51.195.82.237` |
+```ini
+authenticator = webroot
+installer = none
+webroot_path = /var/www/certbot,
+[[webroot_map]]
+demo.itklabs.online = /var/www/certbot
+```
 
-`.env.prod` **не коммитить**.
+(для bot.itklabs.ru — свои домены в `webroot_map`).
 
-### 4. Сборка и запуск всего стека
+> Проверь, что сертификат bot.itklabs.ru покрывает SAN'ами resume/youtrack:
+> `openssl x509 -in certbot/conf/live/bot.itklabs.ru/cert.pem -noout -text | grep DNS:`
+> Если нет — после переключения DNS выпусти отдельные сертификаты (см. п. 6).
+
+## 3. Сборка и проверка ДО переключения DNS
 
 ```bash
-cd ~/task-manager
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+cd /opt/task-manager
+docker compose build
+docker compose up -d
+docker compose ps          # app должен стать healthy
+docker compose logs app | tail -30
+
+# Проверка по HTTPS через локальный nginx (DNS ещё смотрит на старую VPS):
+curl -k --resolve demo.itklabs.online:443:127.0.0.1 https://demo.itklabs.online/actuator/health
+curl -kI --resolve bot.itklabs.ru:443:127.0.0.1 https://bot.itklabs.ru/
+# Ожидаем: {"status":"UP"} и ответ от прокси на 51.195.82.237
 ```
 
-Первый запуск ~5–10 мин (Maven + npm внутри Docker).
-
-### 5. Проверка
+Тест продления (должен сказать «not due yet» или « Congratulations», без ошибок):
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod ps
+docker compose run --rm certbot renew --webroot -w /var/www/certbot --dry-run
 ```
 
-Все сервисы `running`, `app` — `healthy`.
+## 4. Переключение (даунтайм ~2–5 минут)
 
-**Backend напрямую (только с VPS):**
+За сутки: у A-записей **всех четырёх** доменов (demo.itklabs.online,
+bot/resume/youtrack.itklabs.ru) поставить TTL 300 у регистратора.
 
 ```bash
-curl -s http://127.0.0.1:8084/actuator/health
-# {"status":"UP"}
+# 1. На старой VPS остановить приложение (nginx пусть живёт, пока не пропагейтится DNS)
+systemctl stop task-manager
+
+# 2. Переключить A-записи всех 4 доменов на новый IP
+
+# 3. Подождать пропагации (1–5 мин) и проверить уже по DNS:
+dig +short demo.itklabs.online
+curl -I https://demo.itklabs.online/actuator/health
+curl -I https://bot.itklabs.ru/
+
+# 4. В браузере: https://demo.itklabs.online → залогиниться qa@demo.com / Demo123!
 ```
 
-**Через nginx (как у студентов):**
+## 5. После переезда
+
+- [ ] Все 4 домена отвечают с нового IP, HTTPS валиден
+- [ ] Логин, API, загрузка вложений, Swagger (`/swagger-ui.html`) работают
+- [ ] `certbot renew --dry-run` (п. 3) прошёл; контейнер certbot жив: `docker compose logs certbot`
+- [ ] Через 1–2 дня: на старой VPS `systemctl stop nginx`
+- [ ] Через 3–7 дней: снапшот старой VPS, затем удаление
+
+## 6. Выпуск сертификата заново (если переносить не хочется)
+
+После переключения DNS: остановить nginx, выпустить certbot'ом, запустить обратно.
 
 ```bash
-curl -s http://localhost/actuator/health
-curl -s -X POST http://localhost/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"qa@demo.com","password":"Demo123!"}'
+docker compose stop nginx
+docker compose run --rm -p 80:80 certbot certonly --webroot -w /var/www/certbot \
+  -d demo.itklabs.online --email you@example.com --agree-tos --no-eff-email
+docker compose start nginx
 ```
 
-**С локальной машины:**
+(сначала подними только `docker compose up -d app`, иначе проверка домена не пройдёт)
+
+## 7. Ежедневный деплой (новый вариант deploy.ps1)
+
+Всё собирается на VPS, на рабочей машине ни JDK, ни Node не нужно:
+
+```powershell
+.\deploy-docker.ps1 -VpsIp NEW_IP
+```
+
+Что делает: `git pull` локально → по ssh `git pull && docker compose build app && docker compose up -d app`.
+Пересобирается только app — nginx и сертификаты не дёргаются. Даунтайм ~15–20 сек
+(пока стартует Spring). Кэш слоёв Docker делает пересборку быстрой (1–2 мин).
+
+## 8. Полезные команды на VPS
 
 ```bash
-curl -s http://51.195.82.237/actuator/health
+docker compose ps                  # статус (app должен быть healthy)
+docker compose logs -f app         # логи приложения (замена journalctl)
+docker compose restart app         # рестарт приложения
+docker compose up -d --build app   # пересборка + рестарт (после изменения кода)
+docker compose pull && docker compose up -d   # обновить nginx/certbot
+docker system df                   # место; при нехватке — docker system prune
 ```
 
-Браузер:
+## Отличия от старой схемы
 
-| URL | Что |
-|-----|-----|
-| http://51.195.82.237/ | Kanban UI (login) |
-| http://51.195.82.237/swagger-ui.html | Swagger |
-| http://51.195.82.237/openapi.yaml | OpenAPI для Postman |
-
-Demo: `qa@demo.com` / `Demo123!`
-
-**Логи:**
-
-```bash
-docker logs taskmanager-app --tail 100
-docker logs taskmanager-web --tail 50
-docker logs taskmanager-postgres --tail 30
-```
-
----
-
-## B. Обычное обновление (как study-hub)
-
-### 1. Локально
-
-```bash
-git add .
-git commit -m "your message"
-git push origin prod
-```
-
-### 2. SSH на VPS
-
-```bash
-ssh ubuntu@51.195.82.237
-cd ~/task-manager
-git pull origin prod
-```
-
-### 3. Пересборка
-
-**Только backend** (Java/API):
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build app
-```
-
-**Только frontend** (React/nginx):
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build web
-```
-
-**Backend + frontend:**
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build app web
-```
-
-**Весь стек с нуля:**
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-```
-
-### 4. Проверка после деплоя
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod ps
-curl -s http://127.0.0.1:8084/actuator/health
-curl -s http://localhost/actuator/health
-docker logs taskmanager-app --tail 100
-```
-
-Postman: environment **Task Manager — Sandbox (VPS)**, Runner → **01 Smoke**.
-
----
-
-## C. Postman для студентов
-
-Импорт из `postman/`:
-
-- `Task-Manager-Smoke.postman_collection.json`
-- `Task-Manager-Sandbox-VPS.postman_environment.json` → `baseUrl = http://51.195.82.237`
-
----
-
-## D. Альтернатива: nginx на хосте (без контейнера `web`)
-
-Если порт 80 уже занят или хочешь static без Docker:
-
-1. Запускай только `postgres` + `app` (закомментируй `web` в compose или `up postgres app`).
-2. Собери фронт: `cd frontend && npm ci && npm run build`
-3. Скопируй: `sudo rsync -av --delete frontend/dist/ /var/www/taskmanager/`
-4. Nginx: `deploy/nginx-taskmanager.conf.example` → `/etc/nginx/sites-available/taskmanager`
-
-```bash
-sudo ln -s /etc/nginx/sites-available/taskmanager /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
-```
-
----
-
-## E. Troubleshooting
-
-| Симптом | Решение |
-|---------|---------|
-| `app` unhealthy | `docker logs taskmanager-app --tail 200` — часто Liquibase/Postgres |
-| 502 на `/api` | `app` не healthy; проверь `curl http://127.0.0.1:8084/actuator/health` |
-| `Bind for 8083 failed` | Порт занят (часто study-hub); в `.env.prod` поставь `APP_HOST_PORT=8084` |
-| CORS в браузере | `CORS_ALLOWED_ORIGINS` в `.env.prod` = origin фронта (`http://51.195.82.237`) |
-| Maven timeout на VPS | используется `.mvn/settings.xml` (Aliyun mirror) |
-| Порт 80 занят | смени `WEB_HOST_PORT=8080` в `.env.prod` → `http://IP:8080` |
-| Сброс demo-данных | `docker compose ... down -v` (удалит volume Postgres!) + `up --build` |
-
----
-
-## F. Чеклист перед prod
-
-- [ ] `.env.prod` на VPS с сильными `POSTGRES_PASSWORD` и `JWT_SECRET`
-- [ ] `.env.prod` не в git
-- [ ] `CORS_ALLOWED_ORIGINS` = публичный URL
-- [ ] UFW: 22, 80
-- [ ] Smoke Postman зелёный против VPS
-- [ ] Login UI + Kanban открываются в браузере
+- `server.address=127.0.0.1` (systemd) → в контейнере `SERVER_ADDRESS=0.0.0.0`
+  (иначе nginx-контейнер не достучится; наружу порт всё равно не торчит — только `expose`).
+- forwarded-заголовки: `SERVER_FORWARD_HEADERS_STRATEGY=framework` в образе
+  (раньше задавалось аргументами в systemd drop-in).
+- Логи: `docker compose logs app` вместо `journalctl -u task-manager`
+  (ротация 3×10MB настроена в compose).
+- Память: `-Xmx256m` жёстко → `mem_limit: 768m` + `-XX:MaxRAMPercentage=75`
+  (JVM видит лимит контейнера).
+- Продление сертификатов: certbot-контейнер (webroot) + reload nginx раз в 6 часов,
+  вместо certbot.timer с authenticator=nginx.
