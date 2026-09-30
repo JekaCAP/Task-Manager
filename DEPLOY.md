@@ -63,13 +63,14 @@ ls certbot/conf/live/   # должно быть: demo.itklabs.online  bot.itklab
 
 ```ini
 authenticator = webroot
-installer = none
 webroot_path = /var/www/certbot,
 [[webroot_map]]
 demo.itklabs.online = /var/www/certbot
 ```
 
 (для bot.itklabs.ru — свои домены в `webroot_map`).
+Строку `installer = nginx` просто удалить: значения «none» certbot не принимает и падает
+с «Could not select or initialize the requested installer none».
 
 > Проверь, что сертификат bot.itklabs.ru покрывает SAN'ами resume/youtrack:
 > `openssl x509 -in certbot/conf/live/bot.itklabs.ru/cert.pem -noout -text | grep DNS:`
@@ -90,11 +91,18 @@ curl -kI --resolve bot.itklabs.ru:443:127.0.0.1 https://bot.itklabs.ru/
 # Ожидаем: {"status":"UP"} и ответ от прокси на 51.195.82.237
 ```
 
-Тест продления (должен сказать «not due yet» или « Congratulations», без ошибок):
+Проверка webroot-обвязки до переключения DNS (путь продления через nginx):
 
 ```bash
-docker compose run --rm certbot renew --webroot -w /var/www/certbot --dry-run
+mkdir -p certbot/www/.well-known/acme-challenge
+echo ok > certbot/www/.well-known/acme-challenge/ping
+curl --resolve demo.itklabs.online:80:127.0.0.1 http://demo.itklabs.online/.well-known/acme-challenge/ping
+# → ok
 ```
+
+Полный `certbot renew --dry-run` до переключения DNS **не пройдёт авторизацию**:
+Let's Encrypt валидирует домены через публичный DNS, который пока смотрит на старую VPS.
+Это ожидаемо — повтори dry-run после переключения DNS (п. 5).
 
 ## 4. Переключение (даунтайм ~2–5 минут)
 
