@@ -1,0 +1,21 @@
+# VCS/IDE
+.git/
+.gitignore
+.gitattributes
+.idea/
+
+# Локальные артефакты сборки — внутри Docker всё собирается с нуля
+target/
+frontend/node_modules/
+frontend/dist/
+uploads/
+
+# Локальные артефакты build:embed (генерируются заново на stage 1;
+# в git из static лежат только openapi.yaml и icons.svg)
+src/main/resources/static/index.html
+src/main/resources/static/assets/
+src/main/resources/static/favicon.svg
+
+# Секреты и окружение
+.env
+certbot/

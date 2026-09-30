@@ -12,11 +12,13 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
 
 logging:
   level:
-    itk.student.task.manager: DEBUG
+    root: WARN
+    itk.student.task.manager: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: never

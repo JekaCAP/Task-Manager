@@ -1,0 +1,57 @@
+name: task-manager
+
+services:
+  app:
+    build: .
+    image: task-manager:latest
+    restart: unless-stopped
+    expose:
+      - "8090"          # только внутри сети compose, наружу — через nginx
+    # Свой JWT-секрет: задай в .env и раскомментируй.
+    # Без этого используется значение из application.yaml (песочница).
+    # environment:
+    #   JWT_SECRET: ${JWT_SECRET}
+    mem_limit: 768m
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - web
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      app:
+        condition: service_healthy
+    # reload раз в 6 часов, чтобы подхватить продлённые certbot'ом сертификаты
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & exec nginx -g "daemon off;"'''
+    logging: *logging
+    networks:
+      - web
+
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    # Продление через webroot: nginx отдаёт /.well-known/acme-challenge/
+    # из ./certbot/www (см. server-блоки на :80 в nginx/conf.d).
+    entrypoint: >
+      /bin/sh -c 'trap exit TERM;
+      while :; do certbot renew --webroot -w /var/www/certbot --quiet;
+      sleep 12h & wait $${!}; done;'
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    logging: *logging
+
+networks:
+  web:

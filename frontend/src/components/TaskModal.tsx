@@ -1,8 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { tasksApi } from '../api'
+import { allowedStatuses } from '../taskStatus'
 import type { Comment, Task, TaskDetail, TaskPriority, TaskStatus } from '../types'
-
-const STATUSES: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE']
 const PRIORITIES: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 
 interface TaskModalProps {
@@ -174,7 +173,7 @@ export function TaskModal({ open, projectId, task, onClose, onSaved }: TaskModal
                   onChange={(e) => setStatus(e.target.value as TaskStatus)}
                   data-testid="task-status-select"
                 >
-                  {STATUSES.map((s) => (
+                  {allowedStatuses(task.status).map((s) => (
                     <option key={s} value={s}>
                       {s.replace('_', ' ')}
                     </option>
