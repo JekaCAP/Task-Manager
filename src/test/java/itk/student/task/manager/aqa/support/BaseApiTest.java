@@ -1,5 +1,6 @@
 package itk.student.task.manager.aqa.support;
 
+import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.RestAssured;
 import io.restassured.specification.RequestSpecification;
 import itk.student.task.manager.aqa.config.ApiTestConfig;
@@ -18,6 +19,7 @@ public abstract class BaseApiTest {
     static void configureRestAssured() {
         RestAssured.baseURI = ApiTestConfig.baseUrl();
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+        RestAssured.filters(new AllureRestAssured());
     }
 
     @BeforeEach

@@ -1,5 +1,8 @@
 package itk.student.task.manager.aqa.hw;
 
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Story;
 import itk.student.task.manager.aqa.hw.api.ProjectApiClient;
 import itk.student.task.manager.aqa.hw.api.TaskApiClient;
 import itk.student.task.manager.aqa.hw.dto.CreateTaskRequest;
@@ -20,6 +23,8 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 
+@Epic("Task Manager")
+@Feature("Негативные сценарии работы с задачами")
 public class MorozovTaskValidationApiTest extends BaseApiTest {
 
     private static TaskApiClient taskApiClient;
@@ -42,6 +47,7 @@ public class MorozovTaskValidationApiTest extends BaseApiTest {
     }
 
     @Test
+    @Story("Создание задачи без заголовка")
     @DisplayName("V1 create Task without title returns 400 VALIDATION_ERROR")
     void createTaskWithEmptyTitle_returns400() {
 
@@ -59,6 +65,7 @@ public class MorozovTaskValidationApiTest extends BaseApiTest {
     }
 
     @Test
+    @Story("Изменение статуса задачи TODO -> DONE пропуская IN_PROGRESS")
     @DisplayName("V2 PATCH status TODO -> DONE skipping IN_PROGRESS returns 422")
     void updateSkippingStatus_returns422() {
         TaskDto task = createTask();
@@ -80,6 +87,7 @@ public class MorozovTaskValidationApiTest extends BaseApiTest {
     }
 
     @Test
+    @Story("Обновление статуса задачи с устаревшей версией")
     @DisplayName("V3 PATCH task with old version returns 409 Conflict")
     void updateTask_withOldVersion_returns409() {
         TaskDto task = createTask();

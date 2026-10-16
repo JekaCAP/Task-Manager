@@ -1,5 +1,6 @@
 package itk.student.task.manager.aqa.support;
 
+import io.qameta.allure.Step;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import itk.student.task.manager.aqa.config.ApiPaths;
@@ -22,6 +23,7 @@ public final class AuthSupport {
         return obtainAccessToken(ApiTestConfig.userEmail(), ApiTestConfig.userPassword());
     }
 
+    @Step("Авторизация с login {email}")
     public static String obtainAccessToken(String email, String password) {
         return given()
                 .baseUri(ApiTestConfig.baseUrl())
