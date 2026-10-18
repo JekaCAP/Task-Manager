@@ -24,7 +24,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.*;
 
 @Epic("Task Manager")
-@Feature("Негативные сценарии работы с задачами")
+@Feature("Tasks")
 public class MorozovTaskValidationApiTest extends BaseApiTest {
 
     private static TaskApiClient taskApiClient;

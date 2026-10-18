@@ -21,7 +21,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.*;
 
 @Epic("Task Manager")
-@Feature("Разграничение прав")
+@Feature("Auth")
 public class MorozovRbacApiTest extends BaseApiTest {
 
     private static TaskApiClient taskApiClient;

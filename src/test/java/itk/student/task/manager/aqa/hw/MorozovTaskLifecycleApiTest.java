@@ -23,7 +23,7 @@ import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInC
 import static org.hamcrest.Matchers.*;
 
 @Epic("Task Manager")
-@Feature("Жизненный цикл задачи")
+@Feature("Tasks")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MorozovTaskLifecycleApiTest extends BaseApiTest {
 

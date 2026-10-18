@@ -18,7 +18,7 @@ import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 
 @Epic("Task Manager")
-@Feature("Аутентификация")
+@Feature("Auth")
 public class MorozovAuthApiTest extends BaseApiTest {
 
     @Test
