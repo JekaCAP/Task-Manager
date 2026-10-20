@@ -32,20 +32,7 @@
 		<springdoc.version>2.8.6</springdoc.version>
 		<jjwt.version>0.12.6</jjwt.version>
 		<rest-assured.version>5.5.1</rest-assured.version>
-		<groovy.version>4.0.22</groovy.version>
 	</properties>
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>io.qameta.allure</groupId>
-				<artifactId>allure-bom</artifactId>
-				<version>2.35.5</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -180,17 +167,6 @@
 			<version>${rest-assured.version}</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>io.qameta.allure</groupId>
-			<artifactId>allure-junit5</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.qameta.allure</groupId>
-			<artifactId>allure-rest-assured</artifactId>
-			<scope>test</scope>
-		</dependency>
-
 	</dependencies>
 
 	<build>
@@ -225,32 +201,12 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<argLine>
-						-javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
-					</argLine>
 					<excludes>
 						<exclude>**/aqa/hw/**/*Test.java</exclude>
 						<exclude>**/aqa/hw/**/*Tests.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>io.qameta.allure</groupId>
-				<artifactId>allure-maven</artifactId>
-				<version>3.0.3</version>
-				<configuration>
-					<reportVersion>3.20.1</reportVersion>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>post-integration-test</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
 		</plugins>
 	</build>
 
