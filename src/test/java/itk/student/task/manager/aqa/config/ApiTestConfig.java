@@ -41,10 +41,6 @@ public final class ApiTestConfig {
         return PROPS.getProperty("demo.project.key", "DEMO");
     }
 
-    public static String viewerEmail() {
-        return PROPS.getProperty("viewer.email");
-    }
-
     private static Properties load() {
         Properties props = new Properties();
         loadResource(props, "aqa.properties");
