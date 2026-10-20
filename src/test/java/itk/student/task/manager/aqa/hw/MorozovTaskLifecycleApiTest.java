@@ -1,5 +1,9 @@
 package itk.student.task.manager.aqa.hw;
 
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Story;
+import io.qameta.allure.TmsLink;
 import io.restassured.response.Response;
 import itk.student.task.manager.aqa.config.ApiTestConfig;
 import itk.student.task.manager.aqa.hw.api.ProjectApiClient;
@@ -18,6 +22,8 @@ import java.util.UUID;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.hamcrest.Matchers.*;
 
+@Epic("Task Manager")
+@Feature("Tasks")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MorozovTaskLifecycleApiTest extends BaseApiTest {
 
@@ -33,6 +39,8 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
 
     @Test
     @Order(1)
+    @TmsLink("TC-L1")
+    @Story("Получение списка проектов")
     @DisplayName("L1 list of projects contains DEMO")
     void getProjects_returns200AndListOfProjectsContainsDEMO() {
         String demoProjectKey = ApiTestConfig.demoProjectKey();
@@ -52,6 +60,8 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
 
     @Test
     @Order(2)
+    @TmsLink("TC-L2")
+    @Story("Создание задачи")
     @DisplayName("L2 created Task in DEMO contains default params")
     void createTaskInProjectDEMO_returns201AndCreatedTask() {
 
@@ -76,6 +86,8 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
 
     @Test
     @Order(3)
+    @TmsLink("TC-L3")
+    @Story("Получение созданной задачи")
     @DisplayName("L3 GET Task by ID returns Task with valid ID and title")
     void getTaskById_returns200AndTask() {
         Integer version = taskApiClient.getTask(contextTask.getId())
@@ -92,6 +104,8 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
 
     @Test
     @Order(4)
+    @TmsLink("TC-L4")
+    @Story("Изменение статуса задачи")
     @DisplayName("L4 PATCH /tasks/{taskId}/status returns Task with new status and version")
     void updateTaskStatus_returns200AndTaskWithNewStatusAndVersion() {
         UpdateTaskStatusRequest request = new UpdateTaskStatusRequest(
@@ -113,6 +127,8 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
 
     @Test
     @Order(5)
+    @TmsLink("TC-L5")
+    @Story("Удаление задачи")
     @DisplayName("L5 DELETE /tasks/{taskId} return 204 No Content and body is empty")
     void deleteTaskById_returns204WithEmptyBody() {
         taskApiClient.deleteTask(contextTask.getId())
@@ -123,6 +139,8 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
 
     @Test
     @Order(6)
+    @TmsLink("TC-L6")
+    @Story("Получение удаленной задачи")
     @DisplayName("L6 GET deleted task returns 404 NOT FOUND")
     void getDeletedTaskById_returns404() {
         taskApiClient.getTask(contextTask.getId())
