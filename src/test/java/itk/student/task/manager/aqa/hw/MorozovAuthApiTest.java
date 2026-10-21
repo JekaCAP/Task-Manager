@@ -24,7 +24,7 @@ public class MorozovAuthApiTest extends BaseApiTest {
     @Test
     @TmsLink("TC-A1")
     @Story("Успешный логин")
-    @DisplayName("A1 login with valid credentials returns accessToken")
+    @DisplayName("TC-101 Успешный логин qa@demo.com")
     void login_withValidCredentials_returnsToken() {
         String email = ApiTestConfig.userEmail();
         String password = ApiTestConfig.userPassword();
@@ -43,7 +43,7 @@ public class MorozovAuthApiTest extends BaseApiTest {
     @Test
     @TmsLink("TC-A2")
     @Story("Получение авторизованного пользователя")
-    @DisplayName("A2 GET /auth/me with token returns 200 and current user email")
+    @DisplayName("TC-102 Получение информации о текущем пользователе")
     void getUser_withToken_returns200AndCurrentUserEmail() {
         given()
                 .spec(authSpec)
@@ -57,7 +57,7 @@ public class MorozovAuthApiTest extends BaseApiTest {
     @Test
     @TmsLink("TC-A3")
     @Story("Доступ без токена")
-    @DisplayName("A3 GET /auth/me without token returns 401 UNAUTHORIZED")
+    @DisplayName("TC-103 Запрос без токена")
     void getUser_withoutToken_returns401() {
         given()
                 .spec(AuthSupport.anonymousJsonSpec())

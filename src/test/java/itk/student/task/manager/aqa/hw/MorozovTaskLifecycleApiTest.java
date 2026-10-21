@@ -41,7 +41,7 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
     @Order(1)
     @TmsLink("TC-L1")
     @Story("Получение списка проектов")
-    @DisplayName("L1 list of projects contains DEMO")
+    @DisplayName("TC-201 Получение списка проектов с заданным размером страницы")
     void getProjects_returns200AndListOfProjectsContainsDEMO() {
         String demoProjectKey = ApiTestConfig.demoProjectKey();
 
@@ -62,7 +62,7 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
     @Order(2)
     @TmsLink("TC-L2")
     @Story("Создание задачи")
-    @DisplayName("L2 created Task in DEMO contains default params")
+    @DisplayName("TC-202 Создание задачи в проекте")
     void createTaskInProjectDEMO_returns201AndCreatedTask() {
 
         CreateTaskRequest request = new CreateTaskRequest(
@@ -88,7 +88,7 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
     @Order(3)
     @TmsLink("TC-L3")
     @Story("Получение созданной задачи")
-    @DisplayName("L3 GET Task by ID returns Task with valid ID and title")
+    @DisplayName("TC-203 Получение задачи по id")
     void getTaskById_returns200AndTask() {
         Integer version = taskApiClient.getTask(contextTask.getId())
                 .then()
@@ -106,7 +106,7 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
     @Order(4)
     @TmsLink("TC-L4")
     @Story("Изменение статуса задачи")
-    @DisplayName("L4 PATCH /tasks/{taskId}/status returns Task with new status and version")
+    @DisplayName("TC-204 Изменение статуса задачи TODO -> IN_PROGRESS")
     void updateTaskStatus_returns200AndTaskWithNewStatusAndVersion() {
         UpdateTaskStatusRequest request = new UpdateTaskStatusRequest(
                 TaskStatus.IN_PROGRESS,
@@ -129,7 +129,7 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
     @Order(5)
     @TmsLink("TC-L5")
     @Story("Удаление задачи")
-    @DisplayName("L5 DELETE /tasks/{taskId} return 204 No Content and body is empty")
+    @DisplayName("TC-205 Удаление задачи")
     void deleteTaskById_returns204WithEmptyBody() {
         taskApiClient.deleteTask(contextTask.getId())
                 .then()
@@ -141,7 +141,7 @@ public class MorozovTaskLifecycleApiTest extends BaseApiTest {
     @Order(6)
     @TmsLink("TC-L6")
     @Story("Получение удаленной задачи")
-    @DisplayName("L6 GET deleted task returns 404 NOT FOUND")
+    @DisplayName("TC-206 Получение удаленной задачи")
     void getDeletedTaskById_returns404() {
         taskApiClient.getTask(contextTask.getId())
                 .then()
