@@ -45,8 +45,20 @@ public class BoardPage {
         return kanbanBoard.$("[data-testid='kanban-column-" + status + "']");
     }
 
+    public SelenideElement getTaskFromColumn(String status) {
+        return getColumn(status).$("[data-testid^='task-card-']");
+    }
+
+    public SelenideElement getSomeTaskTitleFromColumn(String status) {
+        return getTaskFromColumn(status).$("[data-testid='task-title']");
+    }
+
     public String getStatValue(String statTestId) {
         return statsBar.$("[data-testid='" + statTestId + "']").$("strong").getText();
+    }
+
+    public SelenideElement getStat(String statTestId) {
+        return statsBar.$("[data-testid='" + statTestId + "']").$("strong");
     }
 
     public LoginPage logout() {
