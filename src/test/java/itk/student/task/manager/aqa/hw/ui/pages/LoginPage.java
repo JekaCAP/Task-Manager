@@ -18,11 +18,18 @@ public class LoginPage {
         return this;
     }
 
-    public BoardPage login(String email, String password) {
-        loginInput.sendKeys(email);
-        passwordInput.sendKeys(password);
+    public BoardPage successLogin(String email, String password) {
+        loginInput.setValue(email);
+        passwordInput.setValue(password);
         loginButton.click();
         return new BoardPage();
+    }
+
+    public LoginPage failedLogin(String email, String password) {
+        loginInput.setValue(email);
+        passwordInput.setValue(password);
+        loginButton.click();
+        return this;
     }
 
     public String getErrorMessage() {

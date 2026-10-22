@@ -22,12 +22,12 @@ public class TaskModal {
     private final SelenideElement error = root.$("[data-testid='task-form-error']");
 
     public TaskModal setTitle(String title) {
-        titleInput.sendKeys(title);
+        titleInput.setValue(title);
         return this;
     }
 
     public TaskModal setDescription(String description) {
-        descriptionInput.sendKeys(description);
+        descriptionInput.setValue(description);
         return this;
     }
 
@@ -42,7 +42,7 @@ public class TaskModal {
     }
 
     public TaskModal setDueDate(String date) {
-        dateInput.sendKeys(date);
+        dateInput.setValue(date);
         return this;
     }
 
@@ -57,7 +57,7 @@ public class TaskModal {
     }
 
     public TaskModal addComment(String commentText) {
-        commentInput.sendKeys(commentText);
+        commentInput.setValue(commentText);
         sendCommentBtn.click();
         return this;
     }
