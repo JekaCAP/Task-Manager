@@ -190,7 +190,12 @@
 			<artifactId>allure-rest-assured</artifactId>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>com.codeborne</groupId>
+			<artifactId>selenide</artifactId>
+			<version>7.7.3</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
