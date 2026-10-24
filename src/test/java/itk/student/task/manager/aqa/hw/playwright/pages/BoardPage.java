@@ -29,6 +29,16 @@ public class BoardPage {
         return this;
     }
 
+    public TaskModal openTaskByTitle(String title) {
+        getTaskByTitle(title).click();
+        return new TaskModal(page);
+    }
+
+    public Locator getSomeTaskTitleFromColumn(String status) {
+        return getColumn(status).locator("[data-testid^='task-card-']").first();
+    }
+
+
     public BoardPage createTask(String title, String priority, String dueDate) {
         createTaskBtn.click();
 
