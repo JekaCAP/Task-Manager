@@ -37,7 +37,7 @@ public class PlaywrightExtension implements BeforeAllCallback, AfterAllCallback,
                     + context.getRequiredTestMethod().getName();
 
             ctx.tracing().stop(new Tracing.StopOptions()
-                    .setPath(Paths.get("/traces", name + ".zip")));
+                    .setPath(Paths.get("traces", name + ".zip")));
             ctx.close();
             CONTEXT.remove();
         }
