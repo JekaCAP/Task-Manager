@@ -48,7 +48,7 @@ public class MorozovTaskValidationApiTest extends BaseApiTest {
 
     @Test
     @Story("Создание задачи без заголовка")
-    @DisplayName("V1 create Task without title returns 400 VALIDATION_ERROR")
+    @DisplayName("TC-208 Создание задачи с пустым заголовком")
     void createTaskWithEmptyTitle_returns400() {
 
         CreateTaskRequest request = new CreateTaskRequest(
@@ -66,7 +66,7 @@ public class MorozovTaskValidationApiTest extends BaseApiTest {
 
     @Test
     @Story("Изменение статуса задачи TODO -> DONE пропуская IN_PROGRESS")
-    @DisplayName("V2 PATCH status TODO -> DONE skipping IN_PROGRESS returns 422")
+    @DisplayName("TC-207 Изменение статуса задачи TODO -> DONE")
     void updateSkippingStatus_returns422() {
         TaskDto task = createTask();
 
@@ -88,7 +88,7 @@ public class MorozovTaskValidationApiTest extends BaseApiTest {
 
     @Test
     @Story("Обновление статуса задачи с устаревшей версией")
-    @DisplayName("V3 PATCH task with old version returns 409 Conflict")
+    @DisplayName("TC-209 Изменение статуса задачи с устаревшей версией")
     void updateTask_withOldVersion_returns409() {
         TaskDto task = createTask();
         int lastVersion = task.getVersion();
