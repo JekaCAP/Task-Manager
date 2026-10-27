@@ -45,6 +45,10 @@ public final class ApiTestConfig {
         return PROPS.getProperty("viewer.email");
     }
 
+    public static String channel() {
+        return PROPS.getProperty("playwright.channel");
+    }
+
     private static Properties load() {
         Properties props = new Properties();
         loadResource(props, "aqa.properties");
