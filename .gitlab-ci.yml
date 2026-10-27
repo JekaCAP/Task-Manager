@@ -13,4 +13,4 @@ test:
       - .m2/repository
   script:
     - chmod +x ./mvnw
-    - ./mvnw -B -ntp test -Dtest='itk.student.task.manager.aqa'
+    - ./mvnw -B -ntp test -Dtest='itk.student.task.manager.aqa.**'
