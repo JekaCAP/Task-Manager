@@ -1,0 +1,16 @@
+stages: [test]
+
+test:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  timeout: 15m
+  variables:
+    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+    SELENIDE_HEADLESS: "true"
+  cache:
+    key: maven-hw
+    paths:
+      - .m2/repository
+  script:
+    - chmod +x ./mvnw
+    - ./mvnw -B -ntp test
