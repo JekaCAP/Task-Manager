@@ -2,6 +2,8 @@ package itk.student.task.manager.aqa.hw.ui.pages;
 
 import com.codeborne.selenide.SelenideElement;
 
+import java.util.UUID;
+
 import static com.codeborne.selenide.Condition.*;
 import static com.codeborne.selenide.Selenide.*;
 
@@ -49,16 +51,19 @@ public class BoardPage {
         return getColumn(status).$("[data-testid^='task-card-']");
     }
 
-    public SelenideElement getSomeTaskTitleFromColumn(String status) {
-        return getTaskFromColumn(status).$("[data-testid='task-title']");
-    }
-
     public String getStatValue(String statTestId) {
         return statsBar.$("[data-testid='" + statTestId + "']").$("strong").getText();
     }
 
     public SelenideElement getStat(String statTestId) {
         return statsBar.$("[data-testid='" + statTestId + "']").$("strong");
+    }
+
+    public UUID getTaskIdByTitle(String title) {
+        String testId = $$("[data-testid^='task-card-']")
+                .findBy(text(title))
+                .getAttribute("data-testid");
+        return UUID.fromString(testId.substring("task-card-".length()));
     }
 
     public LoginPage logout() {

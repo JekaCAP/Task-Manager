@@ -56,7 +56,7 @@ public class TaskModal {
     }
 
     public TaskModal setDueDate(String date) {
-        dateInput.pressSequentially(date);
+        dateInput.fill(date);
         return this;
     }
 

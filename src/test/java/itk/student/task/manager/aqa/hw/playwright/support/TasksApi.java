@@ -51,4 +51,10 @@ public class TasksApi {
 
         return JsonPath.from(response.text()).getString("content.find { it.key == '" + key + "' }.id");
     }
+
+    public void deleteTask(String id) {
+        api.delete(TASKS_URL + "/" + id, RequestOptions.create()
+                .setHeader("Authorization", "Bearer " +
+                        getAccessToken(ApiTestConfig.userEmail(), ApiTestConfig.userPassword())));
+    }
 }

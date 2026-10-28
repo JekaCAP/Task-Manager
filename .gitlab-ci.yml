@@ -6,19 +6,22 @@ test:
   timeout: 15m
   variables:
     MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+    PLAYWRIGHT_BROWSERS_PATH: "$CI_PROJECT_DIR/.ms-playwright"
     SELENIDE_HEADLESS: "true"
   cache:
     key: maven-hw
     paths:
       - .m2/repository
+      - .ms-playwright
   before_script:
     - chmod +x ./mvnw
     - ./mvnw -B -ntp exec:java -Dexec.classpathScope=test -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install --with-deps chrome"
   script:
-    - chmod +x ./mvnw
-    - ./mvnw -B -ntp test -Dtest='itk.student.task.manager.aqa.**'
+    - ./mvnw -B -ntp test -Dtest='itk.student.task.manager.aqa.**' -Dselenide.headless=true -Dchromeoptions.args=--lang=ru-RU,--no-sandbox,--disable-gpu
   artifacts:
     when: always
     paths:
       - target/allure-results
+      - target/surefire-reports
+      - traces/
     expire_in: 1 week
