@@ -17,11 +17,12 @@ test:
     - chmod +x ./mvnw
     - ./mvnw -B -ntp exec:java -Dexec.classpathScope=test -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install --with-deps chrome"
   script:
-    - ./mvnw -B -ntp test -Dtest='itk.student.task.manager.aqa.**' -Dselenide.headless=true -Dchromeoptions.args=--lang=ru-RU,--no-sandbox,--disable-gpu
+    - ./mvnw -B -ntp test -Dtest='itk.student.task.manager.aqa.**' -Dselenide.headless=true -Dchromeoptions.args=--no-sandbox,--disable-gpu
   artifacts:
     when: always
     paths:
       - target/allure-results
       - target/surefire-reports
+      - build/reports/tests/
       - traces/
     expire_in: 1 week

@@ -1,5 +1,6 @@
 package itk.student.task.manager.aqa.hw.ui;
 
+import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
 import itk.student.task.manager.aqa.config.ApiTestConfig;
 import itk.student.task.manager.aqa.hw.api.TaskApiClient;
@@ -8,12 +9,13 @@ import itk.student.task.manager.aqa.hw.ui.pages.LoginPage;
 import itk.student.task.manager.aqa.hw.ui.pages.TaskModal;
 import itk.student.task.manager.aqa.support.AuthSupport;
 import org.junit.jupiter.api.*;
+import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.codeborne.selenide.Condition.*;
@@ -22,6 +24,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class BoardUiTest {
 
     private final List<UUID> created = new ArrayList<>();
+
+    @BeforeAll
+    static void setup() {
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--lang=en-US");
+        options.setExperimentalOption("prefs", Map.of("intl.accept_languages", "en-US"));
+        Configuration.browserCapabilities = options;
+    }
 
     @BeforeEach
     void auth() {
@@ -43,7 +53,6 @@ public class BoardUiTest {
                         title,
                         "HIGH",
                         LocalDate.now().plusDays(1)
-                                .format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
                 );
 
         created.add(page.getTaskIdByTitle(title));
@@ -58,8 +67,7 @@ public class BoardUiTest {
 
         page.createTask(title,
                 "HIGH",
-                LocalDate.now().plusDays(1)
-                        .format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                LocalDate.now().plusDays(1));
 
         created.add(page.getTaskIdByTitle(title));
 
@@ -78,8 +86,7 @@ public class BoardUiTest {
 
         page.createTask(title,
                 "HIGH",
-                LocalDate.now().plusDays(1)
-                        .format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                LocalDate.now().plusDays(1));
 
         created.add(page.getTaskIdByTitle(title));
 
@@ -107,8 +114,7 @@ public class BoardUiTest {
         String title = "Test Task Selenide " + System.currentTimeMillis();
         page.createTask(title,
                 "HIGH",
-                LocalDate.now().plusDays(1)
-                        .format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                LocalDate.now().plusDays(1));
 
         created.add(page.getTaskIdByTitle(title));
 

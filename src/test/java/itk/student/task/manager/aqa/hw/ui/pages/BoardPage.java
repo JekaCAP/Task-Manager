@@ -2,6 +2,7 @@ package itk.student.task.manager.aqa.hw.ui.pages;
 
 import com.codeborne.selenide.SelenideElement;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static com.codeborne.selenide.Condition.*;
@@ -25,7 +26,7 @@ public class BoardPage {
         return username.getText();
     }
 
-    public BoardPage createTask(String title, String priority, String dueDate) {
+    public BoardPage createTask(String title, String priority, LocalDate dueDate) {
         createTaskButton.click();
 
         return new TaskModal().setTitle(title)

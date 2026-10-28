@@ -3,6 +3,9 @@ package itk.student.task.manager.aqa.hw.ui.pages;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 import static com.codeborne.selenide.Condition.*;
 import static com.codeborne.selenide.Selenide.*;
 
@@ -41,8 +44,8 @@ public class TaskModal {
         return this;
     }
 
-    public TaskModal setDueDate(String date) {
-        dateInput.setValue(date);
+    public TaskModal setDueDate(LocalDate date) {
+        dateInput.setValue(date.format(DateTimeFormatter.ofPattern("MMddyyyy")));
         return this;
     }
 
