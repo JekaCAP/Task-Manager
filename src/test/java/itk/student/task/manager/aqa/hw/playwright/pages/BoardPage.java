@@ -30,7 +30,7 @@ public class BoardPage {
     }
 
     public TaskModal openTaskByTitle(String title) {
-        getTaskByTitle(title).click();
+        getTaskByTitle(title).first().click();
         return new TaskModal(page);
     }
 
@@ -52,6 +52,14 @@ public class BoardPage {
     public Locator getTaskByTitle(String title) {
         return kanbanBoard.getByTestId("task-title")
                 .filter(new Locator.FilterOptions().setHasText(title));
+    }
+
+    public String getTaskIdByTitle(String title) {
+        String testId = kanbanBoard.locator("[data-testid^='task-card-']")
+                .filter(new Locator.FilterOptions().setHasText(title))
+                .first()
+                .getAttribute("data-testid");
+        return testId.substring("task-card-".length());
     }
 
     public Locator getColumn(String status) {

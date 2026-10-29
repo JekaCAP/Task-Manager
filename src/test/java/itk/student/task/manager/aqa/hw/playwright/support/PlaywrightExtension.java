@@ -46,7 +46,7 @@ public class PlaywrightExtension implements BeforeAllCallback, AfterAllCallback,
         PAGE_ERRORS.remove();
 
         if (!errors.isEmpty()) {
-            System.err.println("JS-ошибки на странице: " + PAGE_ERRORS);
+            System.err.println("JS-ошибки на странице: " + errors);
         }
 
         APIRequestContext api = API.get();
@@ -62,8 +62,7 @@ public class PlaywrightExtension implements BeforeAllCallback, AfterAllCallback,
             playwright = Playwright.create();
             browser = playwright.chromium().launch(
                     new BrowserType.LaunchOptions()
-                            .setChannel(ApiTestConfig.channel())
-                            .setHeadless(false)
+                            .setHeadless(true)
             );
         }
     }

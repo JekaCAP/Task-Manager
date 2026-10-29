@@ -8,16 +8,26 @@ import itk.student.task.manager.aqa.hw.playwright.pages.LoginPage;
 import itk.student.task.manager.aqa.hw.playwright.pages.TaskModal;
 import itk.student.task.manager.aqa.hw.playwright.support.PlaywrightExtension;
 import itk.student.task.manager.aqa.hw.playwright.support.TasksApi;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 @ExtendWith(PlaywrightExtension.class)
 public class BoardPlaywrightTest {
+
+    private final List<String> createdTasks = new ArrayList<>();
+
+    @AfterEach
+    void cleanup(APIRequestContext api) {
+        TasksApi tasksApi = new TasksApi(api);
+        createdTasks.forEach(tasksApi::deleteTask);
+    }
 
     @Test
     void createTaskShouldShowsItInToDoColumn(Page page) {
@@ -30,10 +40,10 @@ public class BoardPlaywrightTest {
                 .createTask(
                         title,
                         "HIGH",
-                        LocalDate.now().plusDays(1)
-                                .format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                        LocalDate.now().plusDays(1).toString()
                 );
 
+        createdTasks.add(boardPage.getTaskIdByTitle(title));
         assertThat(boardPage.getColumn("TODO")).containsText(title);
     }
 
@@ -43,11 +53,11 @@ public class BoardPlaywrightTest {
 
         TasksApi tasksApi = new TasksApi(api);
 
-        String taskUUID = tasksApi.createTask(
+        createdTasks.add(tasksApi.createTask(
                 title,
                 tasksApi.getProjectId(ApiTestConfig.demoProjectKey()),
                 "HIGH"
-        );
+        ));
 
         BoardPage boardPage = new LoginPage(page)
                 .open()
@@ -59,8 +69,6 @@ public class BoardPlaywrightTest {
 
         assertThat(boardPage.getColumn("TODO")).not().containsText(title);
         assertThat(boardPage.getColumn("IN_PROGRESS")).containsText(title);
-
-        api.delete("/api/v1/tasks/" + taskUUID);
     }
 
     @Test
