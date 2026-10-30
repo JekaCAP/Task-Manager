@@ -1,0 +1,392 @@
+{
+  "info": {
+    "_postman_id": "dd11f944-a3b7-45f8-b8f1-a57a8cd05217",
+    "name": "Volovatov — Task Manager HW",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53385770",
+    "_collection_link": "https://go.postman.co/collection/53385770-dd11f944-a3b7-45f8-b8f1-a57a8cd05217?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Happy path",
+      "item": [
+        {
+          "name": "Get token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// --- Сохранение токена ---\r\nconst jsonData = pm.response.json();\r\npm.environment.set('accessToken', jsonData.accessToken);\r\n\r\n// --- Тесты ---\r\npm.test(\"Статус-код 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\npm.test(\"Ответ содержит accessToken\", function () {\r\n    pm.expect(jsonData).to.have.property('accessToken');\r\n});\r\npm.test(\"accessToken не пустой\", function () {\r\n    pm.expect(jsonData.accessToken).to.not.be.empty;\r\n});\r\npm.test(\"Email пользователя совпадает с qa@demo.com\", function () {\r\n    pm.expect(jsonData.user.email).to.equal('qa@demo.com');\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{userEmail}}\",\r\n  \"password\": \"{{userPassword}}\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Projects",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Найден проект с key = DEMO\", function () {\r\n    const json = pm.response.json();\r\n    \r\n    const projects = json.content || json.items || json;\r\n    \r\n    const demoProject = projects.find(p => p.key === \"DEMO\");\r\n    \r\n    pm.expect(demoProject, \"Project with key DEMO not found\").to.not.be.undefined;\r\n    \r\n    pm.environment.set(\"demoProjectId\", demoProject.id);\r\n});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const initials = 'VAA'; // замените на свои инициалы\r\nconst uniqueTitle = `HW-${initials}-${Date.now()}`;\r\npm.environment.set('taskTitle', uniqueTitle);\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects?size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 201\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"status = TODO\", function () {\n    const json = pm.response.json();\n    pm.expect(json.status).to.eql(\"TODO\");\n});\n\npm.test(\"version = 0\", function () {\n    const json = pm.response.json();\n    pm.expect(json.version).to.eql(0);\n});\n\npm.test(\"title совпадает\", function () {\n    const json = pm.response.json();\n    pm.expect(json.title).to.eql(pm.environment.get(\"taskTitle\"));\n});\n\npm.test(\"Сохранить taskId и taskVersion\", function () {\n    const json = pm.response.json();\n    pm.expect(json.id).to.be.a(\"string\");\n    pm.environment.set(\"taskId\", json.id);\n    pm.environment.set(\"taskVersion\", json.version);\n});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const initials = 'VAA'; // замените на свои инициалы\r\nconst uniqueTitle = `HW-${initials}-${Date.now()}`;\r\npm.environment.set('taskTitle', uniqueTitle);\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"projectId\": \"{{demoProjectId}}\",\r\n  \"title\": \"{{taskTitle}}\",\r\n  \"description\": \"Автотест\",\r\n  \"priority\": \"MEDIUM\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Task by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Get Task by ID: статус 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"task.id == taskId\", function () {\n    const json = pm.response.json();\n    const taskId = pm.environment.get(\"taskId\");\n    pm.expect(String(json.task.id)).to.eql(String(taskId));\n});\n\nconst json = pm.response.json();\nif (json.task && json.task.version !== undefined) {\n    pm.environment.set(\"taskVersion\", json.task.version);\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Task Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Update Task Status: статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"status = IN_PROGRESS\", function () {\r\n    const json = pm.response.json();\r\n    pm.expect(json.status).to.eql(\"IN_PROGRESS\");\r\n});\r\n\r\npm.test(\"version увеличилась\", function () {\r\n    const json = pm.response.json();\r\n    const prevVersion = pm.environment.get(\"taskVersion\");\r\n    pm.expect(json.version).to.be.above(Number(prevVersion));\r\n    pm.environment.set(\"taskVersion\", json.version);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"IN_PROGRESS\",\r\n  \"version\": {{taskVersion}}\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 204\", function () {\r\n    pm.response.to.have.status(204);\r\n});\r\n\r\npm.test(\"Тело ответа пустое\", function () {\r\n    pm.expect(pm.response.text()).to.be.empty;\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Deleted Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 404\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\npm.test(\"Код ошибки NOT_FOUND\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.code).to.eql(\"NOT_FOUND\");\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{taskId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Negatives",
+      "item": [
+        {
+          "name": "Unauthorized – no token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Код ошибки UNAUTHORIZED\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.code).to.eql(\"UNAUTHORIZED\");\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "value": ""
+    },
+    {
+      "key": "taskVersion",
+      "value": ""
+    }
+  ]
+}
