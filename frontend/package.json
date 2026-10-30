@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "tsc -b && vite build",
+    "build:embed": "tsc -b && vite build --outDir ../src/main/resources/static --emptyOutDir false",
     "lint": "oxlint",
     "preview": "vite preview --host 127.0.0.1 --port 5173"
   },
