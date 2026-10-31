@@ -63,7 +63,6 @@ test-own-contour:
   stage: verify
   image: maven:3.9-eclipse-temurin-21
   needs: [deploy]
-  tags: [deploy]
   rules:
     - if: '$CI_COMMIT_BRANCH == "morozov/deploy"'
   timeout: 15m
