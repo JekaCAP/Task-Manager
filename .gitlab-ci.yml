@@ -1,4 +1,14 @@
-stages: [test]
+stages: [test, build, deploy, verify]
+
+build-image:
+  stage: build
+  image: docker:27
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "morozov/deploy"'
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker build --provenance=false --sbom=false -t "$CI_REGISTRY_IMAGE/mr:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$CI_REGISTRY_IMAGE/mr:$CI_COMMIT_SHORT_SHA"
 
 test:
   stage: test
@@ -25,4 +35,54 @@ test:
       - target/surefire-reports
       - build/reports/tests/
       - traces/
+    expire_in: 1 week
+
+deploy:
+  stage: deploy
+  tags: [deploy]
+  when: manual
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    auto_stop_in: 2 days
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker rm -f tm-morozov || true
+    - docker run -d --name tm-morozov -p 8102:8090
+      -e SPRING_PROFILES_ACTIVE=dev
+      "$CI_REGISTRY_IMAGE/mr:$CI_COMMIT_SHORT_SHA"
+    - for i in $(seq 1 24); do curl -sf http://127.0.0.1:8102/actuator/health && echo "Деплой жив" && exit 0; echo "Ждём приложение... ($i/24)"; sleep 5; done; exit 1
+
+stop:
+  stage: deploy
+  tags: [deploy]
+  when: manual
+  script:
+    - docker rm -f tm-morozov || true
+
+test-own-contour:
+  stage: verify
+  needs: [deploy]
+  tags: [deploy]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "morozov/deploy"'
+  timeout: 15m
+  cache:
+    key: maven-hw
+    paths:
+      - .m2/repository
+  script:
+    - curl -sf --max-time 10 http://193.233.193.42:8102/actuator/health
+    - >
+      docker run --rm --network host
+      --user "$(id -u):$(id -g)"
+      -e HOME=/tmp
+      -e MAVEN_OPTS="-Dmaven.repo.local=/app/.m2/repository"
+      -v "$CI_PROJECT_DIR":/app -w /app
+      maven:3.9-eclipse-temurin-21
+      sh -c "chmod +x ./mvnw && ./mvnw -B -ntp test -Dtest='*ApiTest' -DbaseUrl=http://193.233.193.42:8102"
+  artifacts:
+    when: always
+    paths:
+      - target/allure-results
+      - target/surefire-reports
     expire_in: 1 week
