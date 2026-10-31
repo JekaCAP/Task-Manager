@@ -61,22 +61,25 @@ stop:
 
 test-own-contour:
   stage: verify
-  image: maven:3.9-eclipse-temurin-21
   needs: [deploy]
+  tags: [deploy]
   rules:
     - if: '$CI_COMMIT_BRANCH == "morozov/deploy"'
   timeout: 15m
-  variables:
-    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
   cache:
     key: maven-hw
     paths:
       - .m2/repository
-  before_script:
-    - chmod +x ./mvnw
   script:
-    - curl -sf http://193.233.193.42:8102/actuator/health
-    - ./mvnw -B -ntp test -Dtest='*ApiTest' -DbaseUrl=http://193.233.193.42:8102
+    - curl -sf --max-time 10 http://193.233.193.42:8102/actuator/health
+    - >
+      docker run --rm --network host
+      --user "$(id -u):$(id -g)"
+      -e HOME=/tmp
+      -e MAVEN_OPTS="-Dmaven.repo.local=/app/.m2/repository"
+      -v "$CI_PROJECT_DIR":/app -w /app
+      maven:3.9-eclipse-temurin-21
+      sh -c "chmod +x ./mvnw && ./mvnw -B -ntp test -Dtest='*ApiTest' -DbaseUrl=http://193.233.193.42:8102"
   artifacts:
     when: always
     paths:
