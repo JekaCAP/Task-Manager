@@ -4,6 +4,7 @@ import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import itk.student.task.manager.aqa.config.ApiPaths;
 import itk.student.task.manager.aqa.config.ApiTestConfig;
+import io.qameta.allure.restassured.AllureRestAssured;
 
 import java.util.Map;
 
@@ -24,6 +25,7 @@ public final class AuthSupport {
 
     public static String obtainAccessToken(String email, String password) {
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(ApiTestConfig.baseUrl())
                 .contentType(ContentType.JSON)
                 .body(Map.of("email", email, "password", password))
@@ -41,6 +43,7 @@ public final class AuthSupport {
 
     public static RequestSpecification authenticatedJsonSpec(String accessToken) {
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(ApiTestConfig.baseUrl())
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
@@ -49,6 +52,7 @@ public final class AuthSupport {
 
     public static RequestSpecification anonymousJsonSpec() {
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(ApiTestConfig.baseUrl())
                 .accept(ContentType.JSON);
     }
