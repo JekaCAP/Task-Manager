@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.*;
 public class VolovatovAuthApiTest {
 
     @Test
-    @DisplayName("Успешный логин")
+    @DisplayName("TC-101 Успешный логин")
     @Story("Успешный логин")
     public void successLogin() {
 
@@ -40,23 +40,23 @@ public class VolovatovAuthApiTest {
     }
 
     @Test
-    @DisplayName("Получение текущего пользователя по токену")
+    @DisplayName("TC-102 Получение текущего пользователя по токену")
     @Story("Получение текущего пользователя по токену")
     public void getUserByToken() {
-        String token = AuthSupport.obtainAccessToken();
-
-        given()
-                .spec(AuthSupport.authenticatedJsonSpec(token))
-                .when()
-                .get("/api/v1/auth/me")
-                .then()
-                .log().ifValidationFails()
-                .statusCode(200)
-                .body("email", equalTo(ApiTestConfig.userEmail()));
+        Allure.step("Получаем токен и запрашиваем профиль", () -> {
+            String token = AuthSupport.obtainAccessToken();
+            given()
+                    .spec(AuthSupport.authenticatedJsonSpec(token))
+                    .when()
+                    .get("/api/v1/auth/me")
+                    .then()
+                    .statusCode(200)
+                    .body("email", equalTo(ApiTestConfig.userEmail()));
+        });
     }
 
     @Test
-    @DisplayName("Доступ к защищённому ресурсу без токена")
+    @DisplayName("TC-103 Доступ к защищённому ресурсу без токена")
     @Story("Доступ без токена")
     public void getUserWithoutToken() {
         given()

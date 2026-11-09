@@ -37,5 +37,5 @@ build/
 
 ### AQA course — локальные overrides (не коммитить) ###
 src/test/resources/aqa-local.properties
-allure-results/
+target/allure-results/
 allure-report/

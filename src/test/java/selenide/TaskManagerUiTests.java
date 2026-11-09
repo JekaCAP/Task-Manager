@@ -35,7 +35,7 @@ public class TaskManagerUiTests {
     }
 
     @Test
-    @DisplayName("Успешный логин")
+    @DisplayName("TC-501 Успешный логин")
     @Order(1)
     public void successLogin() {
 
@@ -52,7 +52,7 @@ public class TaskManagerUiTests {
     }
 
     @Test
-    @DisplayName("Не успешный логин")
+    @DisplayName("TC-502 Не успешный логин")
     @Order(2)
     public void unsuccessLogin() {
 
@@ -68,7 +68,7 @@ public class TaskManagerUiTests {
     }
 
     @Test
-    @DisplayName("Создание задачи")
+    @DisplayName("TC-503 Создание задачи")
     @Order(3)
     public void createTask() {
 
@@ -83,7 +83,7 @@ public class TaskManagerUiTests {
     }
 
     @Test
-    @DisplayName("Перемещение задачи по статусу (TODO → IN_PROGRESS)")
+    @DisplayName("TC-504 Перемещение задачи по статусу (TODO → IN_PROGRESS)")
     @Order(4)
     public void statusChange() {
 
@@ -103,7 +103,7 @@ public class TaskManagerUiTests {
     }
 
     @Test
-    @DisplayName("Добавление комментария к задаче")
+    @DisplayName("TC-505 Добавление комментария к задаче")
     @Order(5)
     public void addComment() {
 
@@ -119,7 +119,7 @@ public class TaskManagerUiTests {
     }
 
     @Test
-    @DisplayName("Логаут")
+    @DisplayName("TC-506 Логаут")
     @Order(6)
     public void logout() {
 

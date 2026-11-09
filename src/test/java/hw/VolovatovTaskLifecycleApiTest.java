@@ -33,7 +33,7 @@ public class VolovatovTaskLifecycleApiTest {
 
     @Test
     @Order(1)
-    @DisplayName("Получить список проектов и найти DEMO")
+    @DisplayName("TC-201 Получить список проектов и найти DEMO")
     @Story("Получаем список проектов и находим в них DEMO")
     public void getListProjectFindDemo() {
 
@@ -55,7 +55,7 @@ public class VolovatovTaskLifecycleApiTest {
 
     @Test
     @Order(2)
-    @DisplayName("Создать задачу в проекте DEMO")
+    @DisplayName("TC-202 Создать задачу в проекте DEMO")
     @Story("Создаем новую задачу")
     public void postTaskInTheDemoProject() {
 
@@ -88,7 +88,7 @@ public class VolovatovTaskLifecycleApiTest {
 
     @Test
     @Order(3)
-    @DisplayName("Получить созданную задачу по ID")
+    @DisplayName("TC-203 Получить созданную задачу по ID")
     @Story("Получаем созданную задачу ")
     public void getCreateTask() {
 
@@ -108,7 +108,7 @@ public class VolovatovTaskLifecycleApiTest {
 
     @Test
     @Order(4)
-    @DisplayName("Обновить статус задачи (TODO → IN_PROGRESS)")
+    @DisplayName("TC-204 Обновить статус задачи (TODO → IN_PROGRESS)")
     @Story("Обновляем статус задачи")
     public void updateStatusTask() {
 
@@ -134,7 +134,7 @@ public class VolovatovTaskLifecycleApiTest {
 
     @Test
     @Order(5)
-    @DisplayName("Удалить задачу")
+    @DisplayName("TC-205 Удалить задачу")
     @Story("Удаляем задачу")
     public void deleteTask() {
 
@@ -154,7 +154,7 @@ public class VolovatovTaskLifecycleApiTest {
 
     @Test
     @Order(6)
-    @DisplayName("Проверить, что задача удалена")
+    @DisplayName("TC-206 Проверить, что задача удалена")
     @Story("Проверяем что запись удалена")
     public void checkTuskDelete() {
 
