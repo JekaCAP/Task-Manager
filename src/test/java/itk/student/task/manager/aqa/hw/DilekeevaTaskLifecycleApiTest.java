@@ -2,6 +2,12 @@ package itk.student.task.manager.aqa.hw;
 
 import static itk.student.task.manager.aqa.hw.consts.TasksApi.TASKS_COMMENTS;
 
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Step;
+import io.qameta.allure.Story;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.specification.ResponseSpecification;
 import itk.student.task.manager.aqa.config.ApiPaths;
@@ -22,46 +28,24 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@Epic("Task Manager")
+@Feature("Tasks")
 public class DilekeevaTaskLifecycleApiTest extends BaseApiTest {
 
   private static final String TASK_BY_TASK_ID = ApiPaths.TASKS + "/{taskId}";
   private static final String TASKS_STATUS = TASK_BY_TASK_ID + "/status";
 
+  @Severity(SeverityLevel.MINOR) // todo не блокирует дальнейшую функциональность, не критично, обычный тест
+  @Story("Обновление статуса на IN_PROGRESS новой задачи")
   @DisplayName("Проверить сквозной сценарий жизненного цикла задачи в проекте с ключом DEMO")
   @Test
   public void checkTaskLifecycleForDEMO_happyPath() {
-    // 1. Получить список проектов и найти DEMO
-    String projectId = authSpec
-        .queryParam("size", 20)
-        .when()
-        .get(ApiPaths.PROJECTS)
-        .then()
-        .log().ifValidationFails()
-        .spec(commonResponseSpec())
-        .body("content.key", Matchers.hasItem("DEMO"))
-        .extract().path("content.find { it.key.equals(\"DEMO\") }.id");
+    String projectId = getProjectIdByKey("DEMO");
 
-    Assertions.assertThat(projectId)
-        .as("ID project is blank")
-        .isNotBlank();
-
-    // 2. Создать задачу в проекте DEMO
     CreateTaskRequest taskCreateRequest = createCreateTaskRequest(projectId);
-
-    TaskResponse taskCreateResponse = authSpec
-        .when()
-        .body(taskCreateRequest)
-        .post(ApiPaths.TASKS)
-        .then()
-        .log().ifValidationFails()
-        .statusCode(201)
-        .extract().as(TaskResponse.class);
+    TaskResponse taskCreateResponse = createTask(taskCreateRequest);
     UUID id = taskCreateResponse.id();
     Long version = taskCreateResponse.version();
-
-    Assertions.assertThat(taskCreateResponse)
-        .as("response is null")
-        .isNotNull();
 
     var softAssertions = new SoftAssertions();
     softAssertions.assertThat(taskCreateResponse.status())
@@ -74,15 +58,7 @@ public class DilekeevaTaskLifecycleApiTest extends BaseApiTest {
         .as("title")
         .isEqualTo(taskCreateRequest.getTitle());
 
-    // 3. Получить созданную задачу по ID
-    TaskDetailResponse taskDetailResponse = authSpec
-        .when()
-        .pathParam("taskId", id)
-        .get(TASK_BY_TASK_ID)
-        .then()
-        .log().ifValidationFails()
-        .spec(commonResponseSpec())
-        .extract().as(TaskDetailResponse.class);
+    TaskDetailResponse taskDetailResponse = getTaskByTaskId(id);
 
     Assertions.assertThat(taskDetailResponse)
         .as("response is null")
@@ -100,30 +76,13 @@ public class DilekeevaTaskLifecycleApiTest extends BaseApiTest {
         .isEqualTo(taskCreateRequest.getTitle());
     version = taskGetResponse.version();
 
-    // 4. Обновить статус задачи (TODO → IN_PROGRESS)
-    TaskResponse taskStatusResponse = authSpec
-        .when()
-        .pathParam("taskId", id)
-        .body(new UpdateTaskStatusRequest(TaskStatus.IN_PROGRESS, version))
-        .patch(TASKS_STATUS)
-        .then()
-        .log().ifValidationFails()
-        .spec(commonResponseSpec())
-        .body("status", CoreMatchers.equalTo(TaskStatus.IN_PROGRESS.name()))
-        .extract().as(TaskResponse.class);
+    TaskResponse taskStatusResponse = updateTaskStatus(id, version, TaskStatus.IN_PROGRESS);
 
     softAssertions.assertThat(taskStatusResponse.version())
         .as("version")
         .isGreaterThan(version);
 
-    // 5. Удалить задачу
-    authSpec
-        .when()
-        .pathParam("taskId", id)
-        .delete(TASK_BY_TASK_ID)
-        .then()
-        .log().ifValidationFails()
-        .statusCode(204);
+    deleteTaskById(id);
 
     // 6. Проверить, что задача удалена
     authSpec
@@ -135,6 +94,85 @@ public class DilekeevaTaskLifecycleApiTest extends BaseApiTest {
         .statusCode(404);
   }
 
+  // todo STEP на private не вешаем - метод можно в отдельный класс precondition
+  @Step("1. Получить список проектов и найти по {key}")
+  private String getProjectIdByKey(String key) {
+    String projectId = authSpec
+        .queryParam("size", 20)
+        .when()
+        .get(ApiPaths.PROJECTS)
+        .then()
+        .log().ifValidationFails()
+        .spec(commonResponseSpec())
+        .body("content.key", Matchers.hasItem(key))
+        .extract().path("content.find { it.key.equals(\"" + key + "\") }.id");
+
+    // todo тоже можно в отедльный метод с отдельным Step в некий verify()
+    Assertions.assertThat(projectId)
+        .as("ID project is blank")
+        .isNotBlank();
+
+    return projectId;
+  }
+
+  @Step("2. Создать задачу в проекте")
+  private TaskResponse createTask(CreateTaskRequest taskCreateRequest) {
+    TaskResponse taskCreateResponse = authSpec
+        .when()
+        .body(taskCreateRequest)
+        .post(ApiPaths.TASKS)
+        .then()
+        .log().ifValidationFails()
+        .statusCode(201)
+        .extract().as(TaskResponse.class);
+
+    Assertions.assertThat(taskCreateResponse)
+        .as("response is null")
+        .isNotNull();
+
+    return taskCreateResponse;
+  }
+
+  @Step("3. Получить созданную задачу по ID={taskId}")
+  private TaskDetailResponse getTaskByTaskId(UUID taskId) {
+    return authSpec
+        .when()
+        .pathParam("taskId", taskId)
+        .get(TASK_BY_TASK_ID)
+        .then()
+        .log().ifValidationFails()
+        .spec(commonResponseSpec())
+        .extract().as(TaskDetailResponse.class);
+  }
+
+
+  @Step("4. Обновить статус задачи (TODO → {newStatus}) у taskId={taskId} ")
+  private TaskResponse updateTaskStatus(UUID taskId, long version, TaskStatus newStatus) {
+    return authSpec
+        .when()
+        .pathParam("taskId", taskId)
+        .body(new UpdateTaskStatusRequest(newStatus, version))
+        .patch(TASKS_STATUS)
+        .then()
+        .log().ifValidationFails()
+        .spec(commonResponseSpec())
+        .body("status", CoreMatchers.equalTo(newStatus.name()))
+        .extract().as(TaskResponse.class);
+  }
+
+  @Step("5. Удалить задачу")
+  private void deleteTaskById(UUID id) {
+    authSpec
+        .when()
+        .pathParam("taskId", id)
+        .delete(TASK_BY_TASK_ID)
+        .then()
+        .log().ifValidationFails()
+        .statusCode(204);
+  }
+
+  @Severity(SeverityLevel.MINOR) // todo не блокирует дальнейшую функциональность, не критично, обычный тест
+  @Story("Создание комментария к задаче")
   @DisplayName("Создать комментарий к задаче")
   @Test
   public void createCommentOfTask_happyPath() {
